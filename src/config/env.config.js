@@ -6,7 +6,7 @@ dotenv.config();
 const requiredEnvVars = [
     'PORT',
     'NODE_ENV',
-    // 'MONGODB_URI',
+    'MONGODB_URI',
     // 'JWT_SECRET',
     // 'OPENAI_API_KEY'
 ];
@@ -31,9 +31,9 @@ const config = {
     isDevelopment: process.env.NODE_ENV === 'development',
     isTest: process.env.NODE_ENV === 'test',
     
-    // database: {
-    //     uri: process.env.MONGODB_URI,
-    // },
+     database: {
+         uri: process.env.MONGODB_URI,
+     },
     
     // jwt: {
     //     secret: process.env.JWT_SECRET,

@@ -11,6 +11,7 @@ const config = require('./config/env.config');
 const routes = require('./routes');
 const requestIdMiddleware = require('./middleware/requestId.middleware');
 const errorHandler = require('./middleware/error.middleware');
+const logger = require('./utils/logger');
 
 // Import logger 
 //i will do later 
@@ -23,21 +24,17 @@ app.use(cors({
     credentials: true,
 }));
 app.use(compression());
-app.use(morgan('dev'));
+// Request ID Middleware (
+app.use(requestIdMiddleware);
+
+app.use(morgan('dev',{stream:logger.stream}));
 app.use(cookieParser());
 
 // Body Parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request ID Middleware (
-app.use(requestIdMiddleware);
 
-// Logging 
-app.use((req, res, next) => {
-    console.log(`📝 ${req.method} ${req.url}`);
-    next();
-});
 
 // API Routes
 app.use('/api', routes);
@@ -66,6 +63,7 @@ app.get('/', (req, res) => {
 
 // 404 Handler
 app.use((req, res) => {
+    logger.error("Route not found")
     res.status(404).json({
         success: false,
         message: 'Route not found',

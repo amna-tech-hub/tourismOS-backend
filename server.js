@@ -1,31 +1,18 @@
-// server.js
+const app = require("./src/app");
+const config = require("./src/config/env.config");
+const bootstrap = require("./src/bootstrap");
 
-const config = require('./src/config/env.config');
-const app = require('./src/app');
+async function startServer() {
+    try {
+        await bootstrap.initialize();
 
-const PORT = config.port;
+        app.listen(config.port, () => {
+            console.log(`Server running on port ${config.port}`);
+        });
 
-// Start server
-const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📡 Environment: ${config.nodeEnv}`);
-    console.log(`📁 API: http://localhost:${PORT}/api/v1/health`);
-});
+    } catch (err) {
+        console.error(err);
+    }
+}
 
-// Handle shutdown gracefully
-process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-    });
-});
-
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Rejection:', err);
-    server.close(() => process.exit(1));
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    server.close(() => process.exit(1));
-});
+startServer();
