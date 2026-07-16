@@ -35,15 +35,7 @@ const RoleSchema = new mongoose.Schema({
     versionKey: false,
   });
 
-// Indexes
 
-// Virtual: User count
-// RoleSchema.virtual('userCount', {
-//     ref: 'User',
-//     localField: 'name',
-//     foreignField: 'role',
-//     count: true,
-// });
 
 
 const Role = mongoose.model('Role', RoleSchema);

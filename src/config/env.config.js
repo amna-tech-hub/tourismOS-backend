@@ -35,24 +35,7 @@ const config = {
          uri: process.env.MONGODB_URI,
      },
     
-    // jwt: {
-    //     secret: process.env.JWT_SECRET,
-    //     expire: process.env.JWT_EXPIRE || '7d',
-    // },
-    
-    // openai: {
-    //     apiKey: process.env.OPENAI_API_KEY,
-    // },
-    
-    // weather: {
-    //     apiKey: process.env.WEATHER_API_KEY,
-    // },
-    
-    // cloudinary: {
-    //     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-    //     apiKey: process.env.CLOUDINARY_API_KEY,
-    //     apiSecret: process.env.CLOUDINARY_API_SECRET,
-    // },
+   
 };
 
 module.exports = config;

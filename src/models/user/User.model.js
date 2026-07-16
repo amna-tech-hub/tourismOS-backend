@@ -48,12 +48,7 @@ const UserSchema = new mongoose.Schema(
     ref: "Role",
     required: true,
 },
-    status: {
-      type: String,
-      enum: ["active", "inactive", "suspended", "pending_verification"],
-      default: "pending_verification",
-      index: true,
-    },
+ 
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
@@ -61,71 +56,60 @@ const UserSchema = new mongoose.Schema(
     },
 
     // Preferences
-    preferences: {
-      language: {
-        type: String,
-        default: "en",
-      },
-      currency: {
-        type: String,
-        default: "PKR",
-      },
-      timezone: {
-        type: String,
-        default: "Asia/Karachi",
-      },
-      notifications: {
-        email: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        sms: { type: Boolean, default: false },
-      },
-      travelPreferences: {
-        interests: [String],
-        budgetRange: {
-          min: Number,
-          max: Number,
-        },
-        preferredDestinations: [String],
-      },
-    },
+    // preferences: {
+    //   language: {
+    //     type: String,
+    //     default: "en",
+    //   },
+    //   currency: {
+    //     type: String,
+    //     default: "PKR",
+    //   },
+    //   timezone: {
+    //     type: String,
+    //     default: "Asia/Karachi",
+    //   },
+    //   notifications: {
+    //     email: { type: Boolean, default: true },
+    //     push: { type: Boolean, default: true },
+    //     sms: { type: Boolean, default: false },
+    //   },
+    //   travelPreferences: {
+    //     interests: [String],
+    //     budgetRange: {
+    //       min: Number,
+    //       max: Number,
+    //     },
+    //     preferredDestinations: [String],
+    //   },
+    // },
 
     // Verification
     emailVerified: {
       type: Boolean,
       default: false,
     },
-    phoneVerified: {
-      type: Boolean,
-      default: false,
-    },
-    verificationToken: {
-      type: String,
-      select: false,
-    },
-    resetPasswordToken: {
-      type: String,
-      select: false,
-    },
-    resetPasswordExpires: {
-      type: Date,
-      select: false,
-    },
+   
+//     verificationToken: {
+//       type: String,
+//       select: false,
+//     },
+//     verificationTokenExpires: {
+//     type: Date,
+//     select: false,
+// },
+//     resetPasswordToken: {
+//       type: String,
+//       select: false,
+//     },
+//     resetPasswordExpires: {
+//       type: Date,
+//       select: false,
+//     },
 
-    // Stats
-    lastLogin: {
-      type: Date,
-    },
-    loginCount: {
-      type: Number,
-      default: 0,
-    },
-    tripsPlanned: {
-      type: Number,
-      default: 0,
-    },
-
+   
     // Base Schema (Audit Fields)
-    ...baseFields,
+    // ...baseFields,
   },
   {
     timestamps: true,
@@ -136,26 +120,6 @@ const UserSchema = new mongoose.Schema(
 
 // Indexes
 UserSchema.index({ email: 1, status: 1 });
-UserSchema.index({ role: 1, status: 1 });
-UserSchema.index({ createdAt: -1 });
-
-// Hash password before saving
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Compare password method
-UserSchema.methods.comparePassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
 
 
 const User = mongoose.model("User", UserSchema);

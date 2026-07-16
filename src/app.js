@@ -49,8 +49,7 @@ app.get('/health', (req, res) => {
         requestId: req.id,
     });
 });
-
-// Home Route
+//  Routes
 app.get('/', (req, res) => {
     res.json({
         success: true,

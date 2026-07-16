@@ -64,12 +64,7 @@ class AppBootstrap {
             // Connect to MongoDB
             await connectDB();
             
-            // Log database stats
-            // const stats = await mongoose.connection.db.stats();
-            // logger.info(` Database connected successfully`);
-            // logger.info(`    Collections: ${stats.collections}`);
-            // logger.info(`    Documents: ${stats.objects}`);
-            // logger.info(`     Database Name: ${mongoose.connection.name}`);
+           
             
             // Test connection with a simple ping
             await mongoose.connection.db.admin().ping();
