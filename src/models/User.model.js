@@ -2,7 +2,7 @@
 
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const baseFields = require("../base/base.schema");
+const baseFields = require("./base/base.schema");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -43,12 +43,12 @@ const UserSchema = new mongoose.Schema(
     },
 
     // User Settings
-   role: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Role",
-    required: true,
-},
- 
+    role: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      required: true,
+    },
+
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
@@ -89,25 +89,24 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-   
-//     verificationToken: {
-//       type: String,
-//       select: false,
-//     },
-//     verificationTokenExpires: {
-//     type: Date,
-//     select: false,
-// },
-//     resetPasswordToken: {
-//       type: String,
-//       select: false,
-//     },
-//     resetPasswordExpires: {
-//       type: Date,
-//       select: false,
-//     },
 
-   
+    //     verificationToken: {
+    //       type: String,
+    //       select: false,
+    //     },
+    //     verificationTokenExpires: {
+    //     type: Date,
+    //     select: false,
+    // },
+    //     resetPasswordToken: {
+    //       type: String,
+    //       select: false,
+    //     },
+    //     resetPasswordExpires: {
+    //       type: Date,
+    //       select: false,
+    //     },
+
     // Base Schema (Audit Fields)
     // ...baseFields,
   },
@@ -120,7 +119,6 @@ const UserSchema = new mongoose.Schema(
 
 // Indexes
 UserSchema.index({ email: 1, status: 1 });
-
 
 const User = mongoose.model("User", UserSchema);
 

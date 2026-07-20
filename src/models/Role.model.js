@@ -21,15 +21,10 @@ const RoleSchema = new mongoose.Schema({
         trim: true,
     },
    
-    permissions:[
-   {
-      type:mongoose.Schema.Types.ObjectId,
-      ref:"Permission"
-   }
-],
+ 
    
   
-    ...baseFields,
+    
 }, {
     timestamps: true,
     versionKey: false,

@@ -12,11 +12,11 @@ const routes = require('./routes');
 const requestIdMiddleware = require('./middleware/requestId.middleware');
 const errorHandler = require('./middleware/error.middleware');
 const logger = require('./utils/logger');
-
+const geminiService =require('./services/ai/gemini.service')
 // Import logger 
 //i will do later 
 const app = express();
-
+ 
 // Security & Performance Middleware
 app.use(helmet());
 app.use(cors({
@@ -49,6 +49,7 @@ app.get('/health', (req, res) => {
         requestId: req.id,
     });
 });
+
 //  Routes
 app.get('/', (req, res) => {
     res.json({
