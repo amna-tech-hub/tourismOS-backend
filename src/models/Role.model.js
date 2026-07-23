@@ -1,4 +1,3 @@
-// src/models/Role.model.js
 
 const mongoose = require('mongoose');
 const baseFields= require('./base/base.schema');
@@ -8,7 +7,7 @@ const RoleSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Role name is required'],
         trim: true,
-        enum: ['user', 'admin', 'super_admin', 'guide', 'vendor'],
+        enum: ['user', 'company_admin', 'super_admin'],
       
     },
     displayName: {
@@ -20,11 +19,7 @@ const RoleSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
-   
  
-   
-  
-    
 }, {
     timestamps: true,
     versionKey: false,

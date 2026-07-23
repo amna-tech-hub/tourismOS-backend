@@ -249,7 +249,7 @@ const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password").populate("role");
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -453,6 +453,96 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const crypto = require("crypto");
+const Invitation = require("../models/Invitation.model");
+const { successResponse, errorResponse } = require("../utils/response.util");
+const Company = require("../models/Company.model");
+
+const acceptInvite = async (req, res) => {
+    try {
+        const { token, name, password } = req.body;
+
+        if (!token || !name || !password) {
+            return errorResponse(res, {
+                statusCode: 400,
+                message: "Token, name, and password are required.",
+            });
+        }
+
+        // 1. Hash the incoming raw token to compare with the DB hash
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        // 2. Find valid, non-expired, unused invitation
+        const invitation = await Invitation.findOne({
+            token: hashedToken,
+            isAccepted: false,
+            expiresAt: { $gt: Date.now() },
+        });
+
+        if (!invitation) {
+            return errorResponse(res, {
+                statusCode: 400,
+                message: "Invalid or expired invitation token.",
+            });
+        }
+
+        // 3. Check if user with this email already exists
+        const existingUser = await User.findOne({ email: invitation.email, isDeleted: false });
+        if (existingUser) {
+            return errorResponse(res, {
+                statusCode: 409,
+                message: "An account with this email already exists.",
+            });
+        }
+
+     // 4. Hash the new password
+const salt = await bcrypt.genSalt(10);
+const hashedPassword = await bcrypt.hash(password, salt);
+
+// 5. Create the Company Admin User
+const user = await User.create({
+    name,
+    email: invitation.email,
+    password: hashedPassword,
+    role: invitation.role, // company_admin role ID
+    emailVerified: true,
+    status: "active",
+});
+
+// 6. Link User as Owner and Verify Company 
+await Company.findByIdAndUpdate(invitation.company, {
+    ownerId: user._id,
+    verificationStatus: "verified" 
+});
+
+// 7. Mark invitation as accepted
+invitation.isAccepted = true;
+await invitation.save();
+
+return successResponse(res, {
+    statusCode: 201,
+    message: "Account setup successfully! You can now log in.",
+    data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        companyId: invitation.company, 
+    },
+});
+    } catch (error) {
+        console.error("Accept Invitation Error:", error);
+        return errorResponse(res, {
+            statusCode: 500,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+
 module.exports = {
   register,
   verifyOTP,
@@ -461,4 +551,5 @@ module.exports = {
   resendOTP,
   forgotPassword,
   resetPassword,
+  acceptInvite
 };

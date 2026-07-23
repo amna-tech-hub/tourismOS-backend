@@ -1,0 +1,42 @@
+const mongoose = require("mongoose");
+
+const invitationSchema = new mongoose.Schema(
+  {
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    role: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      required: true,
+    },
+    token: {
+      type: String, // Hashed token stored in DB
+      required: true,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+      default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    },
+    isAccepted: {
+      type: Boolean,
+      default: false,
+    },
+    invitedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Invitation", invitationSchema);

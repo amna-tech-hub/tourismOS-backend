@@ -14,7 +14,6 @@ const createItinerary = async (req, res) => {
         const prompt = promptBuilder.buildTravelPlanPrompt(req.body);
 
 const result = await aiManager.generate(prompt);
-console.log(result," test");
 
 return res.json(result);
     }

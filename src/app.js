@@ -8,11 +8,9 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 
 const config = require('./config/env.config');
-const routes = require('./routes');
 const requestIdMiddleware = require('./middleware/requestId.middleware');
 const errorHandler = require('./middleware/error.middleware');
 const logger = require('./utils/logger');
-const geminiService =require('./services/ai/gemini.service')
 // Import logger 
 //i will do later 
 const app = express();
@@ -35,11 +33,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 
-
+ const adminRoutes =require('./routes/admin-routes/superadmin.routes')
+ const aiRoutes=require('./routes/ai.routes')
+  const authRoutes=require('./routes/auth.routes')
+const companyRoutes=require('./routes/company-routes/company-admin.routes')
 // API Routes
-app.use('/api', routes);
-
-// Health Check (no versioning)
+app.use('/api/ai', aiRoutes);
+app.use('/api/admin',adminRoutes)
+app.use('/api/auth',authRoutes)
+app.use('/api/company',companyRoutes)
+// Health Check 
 app.get('/health', (req, res) => {
     res.json({
         success: true,

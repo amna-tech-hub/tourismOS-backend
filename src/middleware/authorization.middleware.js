@@ -5,13 +5,14 @@ const isAuth = async (req, res, next) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized. Please log in."
-            });
+         return errorResponse(res, {
+    statusCode: 401,
+    message: "Unauthorized. Please log in.",
+});
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        
         req.user = decoded; 
         next();
     } catch (error) {

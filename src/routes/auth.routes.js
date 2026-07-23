@@ -4,7 +4,7 @@ const router = express.Router();
 
 const authController = require("../controllers/auth.controller");
 const { otpLimiter, loginLimiter } = require("../middleware/rateLimiter");
-const { registerValidator, loginValidator, resetPasswordValidator } = require("../validators/validator");
+const { registerValidator, loginValidator, resetPasswordValidator, acceptInvitationValidator } = require("../validators/validator");
 
 router.post("/register",otpLimiter, registerValidator,authController.register);
 
@@ -17,6 +17,7 @@ router.post("/logout", authController.logout);
 
 router.post('/forgot-password', otpLimiter, authController.forgotPassword);
 router.post('/reset-password', loginLimiter, resetPasswordValidator,authController.resetPassword);
-module.exports = {
-    authRouter: router
-};
+router.post('/accept-invitation', acceptInvitationValidator,authController.acceptInvite);
+
+
+module.exports =   router
