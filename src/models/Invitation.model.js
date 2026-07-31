@@ -7,6 +7,11 @@ const invitationSchema = new mongoose.Schema(
       ref: "Company",
       required: true,
     },
+    user:{
+       type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+     
+    },
     email: {
       type: String,
       required: true,

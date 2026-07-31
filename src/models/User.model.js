@@ -54,6 +54,9 @@ const UserSchema = new mongoose.Schema(
       enum: ["male", "female", "other", "prefer_not_to_say"],
       default: "prefer_not_to_say",
     },
+    fcmTokens: [
+    { type: String }
+  ],
 
     // Preferences
     // preferences: {

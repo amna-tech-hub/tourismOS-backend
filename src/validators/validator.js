@@ -205,6 +205,47 @@ const updateCompanyProfileValidator = [
   validateResults,
 ];
 
+// Employee Validation Rules
+const inviteEmployeeValidator = [
+  body("email")
+    .trim()
+    .notEmpty().withMessage("Employee email is required.")
+    .isEmail().withMessage("Please provide a valid email address.")
+    .normalizeEmail(),
+
+  body("designation")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 }).withMessage("Designation must be between 2 and 50 characters."),
+
+  body("department")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 }).withMessage("Department must be between 2 and 50 characters."),
+
+  validateResults
+];
+
+const updateEmployeeValidator = [
+  param("id")
+    .isMongoId().withMessage("Invalid employee ID format."),
+
+  body("designation")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 }).withMessage("Designation must be between 2 and 50 characters."),
+
+  body("department")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 }).withMessage("Department must be between 2 and 50 characters."),
+
+  body("status")
+    .optional()
+    .isIn(["active", "inactive"]).withMessage("Status must be either active or inactive."),
+
+  validateResults
+];
 module.exports = {
   registerValidator,
   loginValidator,
@@ -213,4 +254,6 @@ module.exports = {
   updateCompanyValidator,
   acceptInvitationValidator,
   updateCompanyProfileValidator,
+  inviteEmployeeValidator,
+  updateEmployeeValidator
 };

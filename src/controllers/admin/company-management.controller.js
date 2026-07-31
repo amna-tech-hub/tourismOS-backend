@@ -14,9 +14,9 @@ const mailSender = require("../../services/email/mailSender");
 
 const createCompany = async (req, res) => {
     try {
-        const { name, email, phone, address } = req.body;
+        const { companyName, email, phone, address } = req.body;
 
-        if (!name || !email) {
+        if (!companyName || !email) {
             return errorResponse(res, {
                 statusCode: 400,
                 message: "Company name and email are required.",
@@ -44,12 +44,13 @@ const createCompany = async (req, res) => {
         // 3. Create the Company record
         const company = await Company.create({
           
-           companyName: name,
+           companyName: companyName,
             email,
             phone,
             address,
             createdBy: req.user.id,
         });
+console.log(company," looking id in company");
 
         // 4. Generate Crypto Invitation Token
         const { rawToken, hashedToken } = generateCryptoToken();
@@ -57,6 +58,7 @@ const createCompany = async (req, res) => {
         // 5. Save Invitation in Database (sent to company email)
         await Invitation.create({
             company: company._id,
+            user:company._id,
             email: company.email,
             role: companyAdminRole._id,
             token: hashedToken,
@@ -104,30 +106,34 @@ const createCompany = async (req, res) => {
 
 
 
-
-// 2. Get All Companies with apifeatur
 const getAllCompanies = async (req, res) => {
     try {
         const baseQuery = Company.find({ isDeleted: false });
-console.log(req.query);
+
+        const totalCompanies = await Company.countDocuments({ isDeleted: false });
 
         const features = new ApiFeatures(baseQuery, req.query)
-            .search()
+            .search(["companyName", "email", "phone", "address"])
             .filter()
             .sort()
             .paginate();
 
         const companies = await features.query;
-        const totalCompanies = await Company.countDocuments({ isDeleted: false });
 
-        return successResponse(res, {
-            statusCode: 200,
-            message: "Companies retrieved successfully.",
-            data: {
-                companies,
-                total: totalCompanies,
-            },
-        });
+      const page = Number(req.query.page) || 1;
+const limit = Number(req.query.limit) || 10;
+
+return successResponse(res, {
+  statusCode: 200,
+  message: "Companies retrieved successfully.",
+  data: companies,
+  meta: {
+    totalDocuments: totalCompanies,
+    page,
+    limit,
+    totalPages: Math.ceil(totalCompanies / limit),
+  },
+});
     } catch (error) {
         console.error("Get All Companies Error:", error);
         return errorResponse(res, {
@@ -281,12 +287,13 @@ const softDeleteCompany = async (req, res) => {
         });
     }
 };
-
+const Employee = require("../../models/Employee.model");
+const Tour = require("../../models/Tour.model");
+const Booking = require("../../models/Booking.model");
 // 8. Company Dashboard Stats (Placeholder)
 const getCompanyStats = async (req, res) => {
     try {
-        console.log(req.params," request paramerts");
-        
+     
         const company = await Company.findOne({ _id: req.params.id, isDeleted: false });
 
         if (!company) {
@@ -296,21 +303,59 @@ const getCompanyStats = async (req, res) => {
             });
         }
 
-        return successResponse(res, {
-            statusCode: 200,
-            message: "Company stats fetched successfully.",
-            data: {
-                companyId: company._id,
-                companyName: company.companyName,
-                status: company.status,
-                createdAt: company.createdAt,
-                stats: {
-                    totalUsers: 0,
-                    totalBookings: 0,
-                    revenue: 0,
-                },
-            },
-        });
+    const totalEmployees = await Employee.countDocuments({
+  company: company._id,
+  isDeleted: false,
+});
+
+const totalTours = await Tour.countDocuments({
+  company: company._id,
+  isDeleted: false,
+});
+
+const totalBookings = await Booking.countDocuments({
+  company: company._id,
+  isDeleted: false,
+});
+
+const revenueResult = await Booking.aggregate([
+  {
+    $match: {
+      company: company._id,
+      status: "completed",
+      paymentStatus: "paid",
+      isDeleted: false,
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      revenue: {
+        $sum: "$totalAmount",
+      },
+    },
+  },
+]);
+
+const revenue =
+  revenueResult.length > 0 ? revenueResult[0].revenue : 0;
+
+return successResponse(res, {
+  statusCode: 200,
+  message: "Company stats fetched successfully.",
+  data: {
+    companyId: company._id,
+    companyName: company.companyName,
+    status: company.status,
+    createdAt: company.createdAt,
+    stats: {
+      totalEmployees,
+      totalTours,
+      totalBookings,
+      revenue,
+    },
+  },
+});
     } catch (error) {
         console.error("Company Stats Error:", error);
         return errorResponse(res, {

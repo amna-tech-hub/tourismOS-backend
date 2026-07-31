@@ -55,10 +55,29 @@ const companySchema = new mongoose.Schema(
             default: "pending",
         },
        
-        subscription: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Subscription", // References a Subscription model 
-        },
+       aiCredits: {
+      total: {
+        type: Number,
+        default: 10000, // Default starting credits for new companies
+      },
+      used: {
+        type: Number,
+        default: 0,
+      },
+      lastUsedAt: {
+        type: Date,
+        default: null,
+      },
+      expiresAt: {
+        type: Date,
+        default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 30 days expiry
+      },
+      plan: {
+        type: String,
+        enum: ["Free", "Starter", "Enterprise"],
+        default: "Starter",
+      },
+    },
          
       
       ...baseFields

@@ -5,9 +5,9 @@ const OpenRouterService = require("../services/ai/openrouter.service");
 class AIManager {
     constructor() {
         this.providers = [
-           //    GroqService,
+              GroqService,
              OpenRouterService,
-        //     GeminiService,
+            GeminiService,
          
         ];
     }

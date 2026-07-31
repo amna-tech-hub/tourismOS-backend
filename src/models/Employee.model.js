@@ -11,9 +11,10 @@ const employeeSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User ID is required."],
-      unique: true, // Ensures a user can only have one employee record
-      index: true,
+      // required: [true, "User ID is required."],
+      // unique: true, // Ensures a user can only have one employee record
+      // index: true,
+      default:null
     },
     designation: {
       type: String,
@@ -35,7 +36,7 @@ const employeeSchema = new mongoose.Schema(
         values: ["active", "inactive"],
         message: "{VALUE} is not a valid employee status.",
       },
-      default: "active",
+      default: "inactive",
     },
     isDeleted: {
       type: Boolean,

@@ -1,4 +1,5 @@
 const Company = require("../../models/Company.model");
+const Employee = require("../../models/Employee.model");
 const User = require("../../models/User.model");
 const { successResponse, errorResponse } = require("../../utils/response.util");
 
@@ -84,7 +85,8 @@ const updateCompanyProfile = async (req, res) => {
   }
 };
 
-
+const Tour = require("../../models/Tour.model");
+const Booking = require("../../models/Booking.model");
 const getCompanyDashboard = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -95,7 +97,7 @@ const getCompanyDashboard = async (req, res) => {
       });
     }
 
-    const company = await Company.findOne({ownerId:user._id});
+    const company = await Company.findOne({ ownerId: user._id });
     if (!company || company.isDeleted) {
       return errorResponse(res, {
         statusCode: 404,
@@ -103,7 +105,50 @@ const getCompanyDashboard = async (req, res) => {
       });
     }
 
-    // Dashboard Overview Stats 
+    const totalEmployees = await Employee.countDocuments({
+      company: company._id,
+      isDeleted: false,
+    });
+
+    const totalTours = await Tour.countDocuments({
+      company: company._id,
+      isDeleted: false,
+    });
+
+    const totalBookings = await Booking.countDocuments({
+      company: company._id,
+      isDeleted: false,
+    });
+
+    const revenueResult = await Booking.aggregate([
+      {
+        $match: {
+          company: company._id,
+          status: "completed",
+          paymentStatus: "paid",
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
+
+    const totalRevenue =
+      revenueResult.length > 0 ? revenueResult[0].revenue : 0;
+
+    // AI Credits Computations
+    const totalCredits = company.aiCredits?.total || 0;
+    const usedCredits = company.aiCredits?.used || 0;
+    const remainingCredits = Math.max(0, totalCredits - usedCredits);
+    const percentageUsed =
+      totalCredits > 0 ? Number(((usedCredits / totalCredits) * 100).toFixed(1)) : 0;
+    const percentageRemaining =
+      totalCredits > 0 ? Number(((remainingCredits / totalCredits) * 100).toFixed(1)) : 0;
+
     const dashboardStats = {
       company: {
         id: company._id,
@@ -111,10 +156,20 @@ const getCompanyDashboard = async (req, res) => {
         status: company.status,
       },
       stats: {
-        totalEmployees: 0,
-        totalTours: 0,
-        totalBookings: 0,
-        totalRevenue: 0,
+        totalEmployees,
+        totalTours,
+        totalBookings,
+        totalRevenue,
+      },
+      aiCredits: {
+        total: totalCredits,
+        used: usedCredits,
+        remaining: remainingCredits,
+        percentageUsed,
+        percentageRemaining,
+        lastUsedAt: company.aiCredits?.lastUsedAt || null,
+        expiresAt: company.aiCredits?.expiresAt || null,
+        plan: company.aiCredits?.plan || "Starter",
       },
     };
 
@@ -131,7 +186,6 @@ const getCompanyDashboard = async (req, res) => {
     });
   }
 };
-
 module.exports = {
   getCompanyProfile,
   updateCompanyProfile,

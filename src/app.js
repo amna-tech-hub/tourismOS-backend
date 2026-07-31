@@ -34,14 +34,30 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 
  const adminRoutes =require('./routes/admin-routes/superadmin.routes')
- const aiRoutes=require('./routes/ai.routes')
+//  const aiRoutes=require('./routes/ai.routes')
   const authRoutes=require('./routes/auth.routes')
 const companyRoutes=require('./routes/company-routes/company-admin.routes')
+const companyEmployeeRoutes=require('./routes/company-routes/employee.routes')
+const tourRoutes=require('./routes/tour.route')
+const uploadRouter=require('./routes/upload.routes')
+const travellerBookingRoutes=require('./routes/traveler/booking.routes')
+const companyBookingRoutes=require('./routes/company-routes/booking.routes')
+const notificationRoutes=require('./routes/notification.routes')
+const reviewRoutes=require('./routes/traveler/review.routes')
+
 // API Routes
-app.use('/api/ai', aiRoutes);
+// app.use('/api/ai', aiRoutes);
 app.use('/api/admin',adminRoutes)
 app.use('/api/auth',authRoutes)
 app.use('/api/company',companyRoutes)
+app.use('/api/company/employees',companyEmployeeRoutes)
+app.use('/api/tours',tourRoutes)
+app.use("/api/upload", uploadRouter);
+app.use("/api", travellerBookingRoutes);
+app.use("/company/bookings", companyBookingRoutes);
+app.use("/api/notification",notificationRoutes)
+app.use("/api/tour/review",reviewRoutes)
+
 // Health Check 
 app.get('/health', (req, res) => {
     res.json({
