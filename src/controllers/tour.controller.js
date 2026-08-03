@@ -335,8 +335,49 @@ const deleteTour = async (req, res) => {
     });
   }
 };
+// src/controllers/tour.controller.js
+const tourSafetyService = require("../services/safety/tourSafety.service");
+
+const getTourDetails = async (req, res) => {
+  try {
+    const { id } = req.body;
+console.log("came inside tour-detail",id)
+    // 1. Fetch tour from MongoDB
+    const tour = await Tour.findOne({ _id: id, isDeleted: { $ne: true } })
+      .populate("company", "companyName logo")
+      .populate("createdBy", "name email");
+
+    if (!tour) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Tour package not found.",
+      });
+    }
+
+    // 2. Fetch daily safety & weather intelligence (cached / background refreshed)
+    const dailySafety = await tourSafetyService.getTourSafety(tour);
+
+    // 3. Return Combined Payload
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Tour details fetched successfully.",
+      data: {
+        tour,
+        dailySafety,
+      },
+    });
+  } catch (error) {
+    console.error("Get Tour Details Error:", error);
+    return errorResponse(res, {
+      statusCode: 500,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
 
 module.exports = {
+  getTourDetails,
   createTour,
   getAllTours,
   getTourById,

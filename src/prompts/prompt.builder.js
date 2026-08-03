@@ -30,6 +30,7 @@ Interests: ${interestsText}
 CRITICAL RULES:
 1. Return strictly a raw, valid JSON object without any code blocks or markdown formatting.
 2. Do not insert explicit line breaks or escaped quotes inside string values.
+3. Every day in the itinerary MUST include a single, primary, specific "location" field (e.g., "Murree", "Nathia Gali", "Hunza"). Do NOT embed the location inside the description text.
 
 Required JSON Structure:
 {
@@ -37,6 +38,7 @@ Required JSON Structure:
     {
       "day": 1,
       "title": "Day 1 Title",
+      "location": "Location Name",
       "description": "Day 1 activity description",
       "activities": ["Activity 1", "Activity 2"]
     }

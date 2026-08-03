@@ -315,9 +315,19 @@ const login = async (req, res) => {
     });
   }
 };
-
 const logout = async (req, res) => {
   try {
+    const { fcmToken } = req.body;
+    const userId = req.user?.id; 
+
+    // 1. Remove device's FCM token from MongoDB (so pushes stop)
+    if (userId && fcmToken) {
+      await User.findByIdAndUpdate(userId, {
+        $pull: { fcmTokens: fcmToken }
+      });
+    }
+
+    // 2. Clear HttpOnly auth cookie
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -517,8 +527,10 @@ const acceptInvite = async (req, res) => {
     }
 
     if (role && role.name === "employee") {
+      console.log("came inside employyy invite");
+      
       await Employee.findOneAndUpdate(
-        { user: invitation.user },
+        { _id: invitation.user },  //employee user
         {
           $set: {
             user: user._id,

@@ -6,6 +6,9 @@ const { successResponse, errorResponse } = require("../utils/response.util");
 
 // Helper to resolve company profile
 const getCompanyForUser = async (user) => {
+  if (user.role === "super_admin") {
+    return null; // Super Admin does not require a company association
+  }
   if (user.role === "company_admin") {
     return await Company.findOne({ ownerId: user.id, isDeleted: false });
   }
@@ -49,28 +52,31 @@ const generatePreview = async (req, res) => {
       });
     }
 
+    const isSuperAdmin = req.user.role === "super_admin";
     const company = await getCompanyForUser(req.user);
-    if (!company) {
+
+    // Require company profile ONLY IF the user is NOT a super_admin
+    if (!isSuperAdmin && !company) {
       return errorResponse(res, {
         statusCode: 404,
         message: "Associated company profile not found.",
       });
     }
 
-    // ==========================================
-    // 1. AI CREDIT PRE-CHECK
-    // ==========================================
+    // 1. AI CREDIT PRE-CHECK (Skip for Super Admin)
     const ESTIMATED_CREDIT_COST = 50; // Set credit cost per AI generation call
 
-    const totalCredits = company.aiCredits?.total || 0;
-    const usedCredits = company.aiCredits?.used || 0;
-    const remainingCredits = totalCredits - usedCredits;
+    if (!isSuperAdmin) {
+      const totalCredits = company.aiCredits?.total || 0;
+      const usedCredits = company.aiCredits?.used || 0;
+      const remainingCredits = totalCredits - usedCredits;
 
-    if (remainingCredits < ESTIMATED_CREDIT_COST) {
-      return errorResponse(res, {
-        statusCode: 400,
-        message: `Insufficient AI credits. You have ${Math.max(0, remainingCredits)} credits remaining, but this action requires ${ESTIMATED_CREDIT_COST}.`,
-      });
+      if (remainingCredits < ESTIMATED_CREDIT_COST) {
+        return errorResponse(res, {
+          statusCode: 400,
+          message: `Insufficient AI credits. You have ${Math.max(0, remainingCredits)} credits remaining, but this action requires ${ESTIMATED_CREDIT_COST}.`,
+        });
+      }
     }
 
     // 1. Build prompt and call AI Manager
@@ -114,13 +120,14 @@ const generatePreview = async (req, res) => {
       });
     }
 
-    // ==========================================
-    // 2. AI CREDIT DEDUCTION (Executes only on success)
-    // ==========================================
-    await Company.findByIdAndUpdate(company._id, {
-      $inc: { "aiCredits.used": ESTIMATED_CREDIT_COST },
-      $set: { "aiCredits.lastUsedAt": new Date() },
-    });
+ 
+    // credit skip for super admin
+    if (!isSuperAdmin && company) {
+      await Company.findByIdAndUpdate(company._id, {
+        $inc: { "aiCredits.used": ESTIMATED_CREDIT_COST },
+        $set: { "aiCredits.lastUsedAt": new Date() },
+      });
+    }
 
     // 4. Safe key extraction
     const parsedItinerary = aiData.itinerary || aiData.data?.itinerary || [];
@@ -134,7 +141,7 @@ const generatePreview = async (req, res) => {
       statusCode: 200,
       message: "AI tour itinerary preview generated successfully.",
       data: {
-        company: company._id,
+        company: company ? company._id : null, // Set null for Super Admin
         createdBy: req.user.id,
         title,
         description: req.body.description || `AI-generated tour package for ${destination}`,

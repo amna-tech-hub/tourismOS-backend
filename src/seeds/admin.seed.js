@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User.model");
-const Role = require("../models/Role.model"); // If roles are stored in a separate collection
+const Role = require("../models/Role.model"); 
 require("dotenv").config();
 
 const seedSuperAdmin = async () => {
@@ -41,13 +41,13 @@ emailVerified: true,
             status: "active",
         });
 
-        console.log("✅ Super Admin created successfully!");
+        console.log(" Super Admin created successfully!");
         console.log(`Email: ${adminEmail}`);
         console.log(`Password: ${adminPassword}`);
 
         process.exit(0);
     } catch (error) {
-        console.error("❌ Error seeding Super Admin:", error);
+        console.error(" Error seeding Super Admin:", error);
         process.exit(1);
     }
 };

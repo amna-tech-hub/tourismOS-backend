@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const config = require('./env.config');
+const { startGeocodingJob } = require('../jobs/geocode.job')
 
 // Import plugins
 const mongoosePaginate = require('mongoose-paginate-v2');
@@ -41,9 +42,7 @@ const connectDB = async () => {
 
         const conn = await mongoose.connect(config.database.uri, options);
         
-        logger.info(` MongoDB Connected: ${conn.connection.host}`);
-        logger.info(` Database Name: ${conn.connection.name}`);
-        logger.info(` Connection Pool Size: ${options.maxPoolSize}`);
+     startGeocodingJob()
 
         // Handle connection events
         mongoose.connection.on('error', (err) => {

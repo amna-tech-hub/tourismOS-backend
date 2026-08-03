@@ -3,20 +3,19 @@ const baseFields = require("./base/base.schema");
 
 // Sub-schema for single day itinerary
 const dayItinerarySchema = new mongoose.Schema({
-  day: {
-    type: Number,
-    required: true,
-  },
-  title: {
-    type: String,
-    trim: true,
-  },
-  description: {
-    type: String,
-    trim: true,
-  },
-  activities: [{ type: String }],
-});
+    day: { type: Number, required: true },
+    title: { type: String, required: true },
+    description: { type: String },
+    activities: [{ type: String }],
+    
+    // --- Fields for Geocoding & Location ---
+    location: { type: String, required: true }, 
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    isGeocoded: { type: Boolean, default: false },
+    geocodeAttempts: { type: Number, default: 0 },
+    geocodedAt: { type: Date, default: null }
+  });
 
 const tourSchema = new mongoose.Schema(
   {

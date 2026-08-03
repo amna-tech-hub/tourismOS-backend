@@ -54,3 +54,28 @@ const response = await getMessaging().sendEachForMulticast(message);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+
+exports.removeFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    const userId = req.user.id; 
+
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: 'FCM Token is required' });
+    }
+
+    // $pull removes all instances of fcmToken from the array matching the token value
+    await User.findByIdAndUpdate(userId, {
+      $pull: { fcmTokens: fcmToken }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'FCM Token removed successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting FCM token:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

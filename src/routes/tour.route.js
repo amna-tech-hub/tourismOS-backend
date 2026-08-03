@@ -4,6 +4,8 @@ const tourController = require("../controllers/tour.controller");
 const aiController = require("../controllers/ai.controller");
 const isAuth = require("../middleware/authorization.middleware"); 
 const restrictTo = require("../middleware/role.middleware"); 
+const checkSafetyController = require("../controllers/check-safety.controller");
+
 // Single Endpoint: Generate Itinerary via AI and Save directly to DB
 router.post(
   "/generate-preview",
@@ -11,7 +13,11 @@ router.post(
   restrictTo("company_admin", "employee","super_admin"),
   aiController.generatePreview
 );
-
+router.post(
+  "/tour-detail",
+  isAuth,
+  tourController.getTourDetails
+);
 // Standard CRUD Endpoints
 router.post(
   "/",
@@ -53,5 +59,13 @@ router.delete(
   restrictTo("company_admin", "employee","super_admin"),
   tourController.deleteTour
 );
+router.post(
+  "/check-safety",
+  isAuth,
+  checkSafetyController.checkSafety
+  
+);
+
+
 
 module.exports = router;

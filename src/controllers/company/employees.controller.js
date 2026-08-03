@@ -23,7 +23,6 @@ const inviteEmployee = async (req, res) => {
         message: "Employee email is required.",
       });
     }
-console.log(req.user.id,"awaw");
 
     // 1. Get company owned by logged-in company admin
     const company = await getAdminCompany(req.user.id);
@@ -59,7 +58,6 @@ console.log(req.user.id,"awaw");
             address,
             createdBy: req.user.id,
         });
-console.log(await employee," employee looking dor id");
 
     // 4. Generate Crypto Invitation Token
     const { rawToken, hashedToken } = generateCryptoToken();
@@ -214,7 +212,7 @@ const getEmployeeById = async (req, res) => {
 
 const updateEmployee = async (req, res) => {
   try {
-    const { designation, department, status, joiningDate } = req.body;
+    const { designation, department, status, joiningDate ,name} = req.body;
 
     const company = await getAdminCompany(req.user.id);
     if (!company) {
