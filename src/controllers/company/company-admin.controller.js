@@ -2,7 +2,7 @@ const Company = require("../../models/Company.model");
 const Employee = require("../../models/Employee.model");
 const User = require("../../models/User.model");
 const { successResponse, errorResponse } = require("../../utils/response.util");
-
+const AICreditTransaction = require('../../models/AICreditTransaction.model')
 const getCompanyProfile = async (req, res) => {
   try {
     // Find user to extract company reference
@@ -148,30 +148,42 @@ const getCompanyDashboard = async (req, res) => {
       totalCredits > 0 ? Number(((usedCredits / totalCredits) * 100).toFixed(1)) : 0;
     const percentageRemaining =
       totalCredits > 0 ? Number(((remainingCredits / totalCredits) * 100).toFixed(1)) : 0;
+// Latest AI Credit Activity
+const recentCreditActivity = await AICreditTransaction.find({
+  company: company._id,
+})
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .select(
+    "type credits balanceAfter description createdAt"
+  );
+  const dashboardStats = {
+  company: {
+    id: company._id,
+    name: company.companyName,
+    status: company.status,
+  },
 
-    const dashboardStats = {
-      company: {
-        id: company._id,
-        name: company.companyName,
-        status: company.status,
-      },
-      stats: {
-        totalEmployees,
-        totalTours,
-        totalBookings,
-        totalRevenue,
-      },
-      aiCredits: {
-        total: totalCredits,
-        used: usedCredits,
-        remaining: remainingCredits,
-        percentageUsed,
-        percentageRemaining,
-        lastUsedAt: company.aiCredits?.lastUsedAt || null,
-        expiresAt: company.aiCredits?.expiresAt || null,
-        plan: company.aiCredits?.plan || "Starter",
-      },
-    };
+  stats: {
+    totalEmployees,
+    totalTours,
+    totalBookings,
+    totalRevenue,
+  },
+
+  aiCredits: {
+    total: totalCredits,
+    used: usedCredits,
+    remaining: remainingCredits,
+    percentageUsed,
+    percentageRemaining,
+    lastUsedAt: company.aiCredits?.lastUsedAt || null,
+    expiresAt: company.aiCredits?.expiresAt || null,
+    plan: company.aiCredits?.plan || "Starter",
+
+    recentActivity: recentCreditActivity,
+  },
+};
 
     return successResponse(res, {
       statusCode: 200,
@@ -186,8 +198,76 @@ const getCompanyDashboard = async (req, res) => {
     });
   }
 };
+const getCreditHistory = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Associated company not found.",
+      });
+    }
+
+    const company = await Company.findOne({ ownerId: user._id });
+
+    if (!company || company.isDeleted) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Company profile not found.",
+      });
+    }
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const [transactions, totalTransactions] = await Promise.all([
+      AICreditTransaction.find({ company: company._id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select(
+          "type credits balanceBefore balanceAfter description referenceId createdAt"
+        ),
+
+      AICreditTransaction.countDocuments({
+        company: company._id,
+      }),
+    ]);
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Credit history retrieved successfully.",
+      data: {
+        currentBalance:
+          company.aiCredits.total - company.aiCredits.used,
+
+        totalCredits: company.aiCredits.total,
+        usedCredits: company.aiCredits.used,
+
+        pagination: {
+          page,
+          limit,
+          totalTransactions,
+          totalPages: Math.ceil(totalTransactions / limit),
+        },
+
+        transactions,
+      },
+    });
+  } catch (error) {
+    console.error("Get Credit History Error:", error);
+
+    return errorResponse(res, {
+      statusCode: 500,
+      message: "Internal server error.",
+    });
+  }
+};
 module.exports = {
   getCompanyProfile,
   updateCompanyProfile,
   getCompanyDashboard,
+  getCreditHistory
 };

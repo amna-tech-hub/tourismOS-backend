@@ -1,7 +1,8 @@
 class PromptBuilder {
   buildTravelPlanPrompt(data) {
     const {
-      destination = "Not specified",
+      from = "Not specified",
+      to = "Not specified",
       duration = "Not specified",
       budget = "Not specified",
       interests = [],
@@ -22,7 +23,8 @@ class PromptBuilder {
     return `
 Create a structured travel itinerary based on the following details:
 
-Destination: ${destination}
+Starting Location (From): ${from}
+Destination Location (To): ${to}
 Duration: ${duration} days
 Budget: PKR ${formattedBudget}
 Interests: ${interestsText}
@@ -31,6 +33,8 @@ CRITICAL RULES:
 1. Return strictly a raw, valid JSON object without any code blocks or markdown formatting.
 2. Do not insert explicit line breaks or escaped quotes inside string values.
 3. Every day in the itinerary MUST include a single, primary, specific "location" field (e.g., "Murree", "Nathia Gali", "Hunza"). Do NOT embed the location inside the description text.
+4. Each item in "activities" MUST be an object with a "title" string and an optional "image" object set to null by default.
+5. Include a list of 4-6 common traveler FAQs relevant to traveling from ${from} to ${to}.
 
 Required JSON Structure:
 {
@@ -40,7 +44,16 @@ Required JSON Structure:
       "title": "Day 1 Title",
       "location": "Location Name",
       "description": "Day 1 activity description",
-      "activities": ["Activity 1", "Activity 2"]
+      "activities": [
+        {
+          "title": "Shopping on Mall Road",
+          "image": null
+        },
+        {
+          "title": "Visiting the Murree Golf Club",
+          "image": null
+        }
+      ]
     }
   ],
   "budgetBreakdown": {
@@ -51,7 +64,13 @@ Required JSON Structure:
   },
   "travelTips": ["Tip 1"],
   "bestTimeToVisit": "Best months to visit",
-  "importantNotes": ["Note 1"]
+  "importantNotes": ["Note 1"],
+  "faqs": [
+    {
+      "question": "Frequently asked traveler question?",
+      "answer": "Detailed helpful answer for travelers."
+    }
+  ]
 }
 `;
   }

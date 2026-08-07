@@ -258,6 +258,8 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select("+password").populate("role");
     if (!user) {
+      console.log("inside log");
+      
       return errorResponse(res, {
         statusCode: 401,
         message: "Invalid email or password.",
@@ -270,6 +272,7 @@ const login = async (req, res) => {
         message: "Please verify your email using OTP before logging in.",
       });
     }
+console.log(password, user.password);
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {

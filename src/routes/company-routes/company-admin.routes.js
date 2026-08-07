@@ -8,6 +8,11 @@ router.use(isAuth)
 const restrictTo=require('../../middleware/role.middleware');
 const { updateCompanyProfileValidator } = require("../../validators/validator");
 router.get('/profile',restrictTo("company_admin"),companyController.getCompanyProfile)
+router.get(
+  "/dashboard/credit-history",
+  restrictTo("company_admin"),
+  companyController.getCreditHistory
+);
 router.patch("/profile",restrictTo("company_admin"),updateCompanyProfileValidator,companyController.updateCompanyProfile );
 router.get("/dashboard",restrictTo("company_admin"),companyController.getCompanyDashboard);
 module.exports=router

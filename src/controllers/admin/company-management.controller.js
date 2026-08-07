@@ -365,6 +365,48 @@ return successResponse(res, {
     }
 };
 
+// controllers/admin.controller.js
+// src/controllers/admin.controller.js
+const Payment = require("../../models/Payment.model");
+
+/**
+ * @desc Get all fraud attempts for Admin Dashboard
+ * @route GET /api/v1/admin/fraud-attempts
+ * @access Private (Super Admin)
+ */
+exports.getFraudAttempts = async (req, res) => {
+  try {
+    const fraudAttempts = await Payment.find({ status: "fraud_attempt" })
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const ipGroups = {};
+    fraudAttempts.forEach((attempt) => {
+      if (!ipGroups[attempt.ipAddress]) {
+        ipGroups[attempt.ipAddress] = [];
+      }
+      ipGroups[attempt.ipAddress].push(attempt);
+    });
+
+    const sortedIps = Object.entries(ipGroups).sort((a, b) => b[1].length - a[1].length);
+
+    res.json({
+      success: true,
+      totalAttempts: fraudAttempts.length,
+      uniqueIps: Object.keys(ipGroups).length,
+      attempts: fraudAttempts,
+      ipAnalysis: sortedIps.map(([ip, attempts]) => ({
+        ip,
+        attemptCount: attempts.length,
+        firstAttempt: attempts[attempts.length - 1].createdAt,
+        lastAttempt: attempts[0].createdAt,
+        reasons: [...new Set(attempts.map((a) => a.fraudReason))],
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 module.exports = {
     createCompany,
     getAllCompanies,

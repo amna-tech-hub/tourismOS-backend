@@ -58,7 +58,7 @@ const companySchema = new mongoose.Schema(
        aiCredits: {
       total: {
         type: Number,
-        default: 10000, // Default starting credits for new companies
+        default: 500, // Default starting credits for new companies
       },
       used: {
         type: Number,
@@ -74,7 +74,7 @@ const companySchema = new mongoose.Schema(
       },
       plan: {
         type: String,
-        enum: ["Free", "Starter", "Enterprise"],
+        enum: ["Starter", "Pro", "Enterprise"],
         default: "Starter",
       },
     },

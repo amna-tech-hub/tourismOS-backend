@@ -2,11 +2,7 @@
 const axios = require("axios");
 
 class GeocodingService {
-  /**
-   * Geocodes a location name string using Nominatim API.
-   * @param {string} locationName - e.g. "Murree" or "Hunza Valley"
-   * @returns {Promise<{latitude: number, longitude: number} | null>}
-   */
+
   async geocodeLocation(locationName) {
     if (!locationName) return null;
 

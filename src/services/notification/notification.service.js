@@ -3,9 +3,7 @@ const User = require("../../models/User.model");
 const Notification = require("../../models/Notification.model"); // In-App Notification Model
 
 class NotificationService {
-  /**
-   * Sends a Push Notification + Saves In-App Notification for a User
-   */
+  
   async sendToUser(userId, { title, body, type = "SAFETY_ALERT", extraData = {} }) {
     try {
       // 1. Save In-App Notification to MongoDB

@@ -1,9 +1,4 @@
-/**
- * Returns pagination values from query params.
- *
- * Example:
- * ?page=2&limit=10
- */
+
 const paginate = (query) => {
     let page = parseInt(query.page, 10) || 1;
     let limit = parseInt(query.limit, 10) || 10;

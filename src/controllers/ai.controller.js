@@ -1,11 +1,16 @@
 const promptBuilder = require("../prompts/prompt.builder");
 const aiManager = require("../manager/ai.manager");
+const aiCreditService = require("../services/ai.credit.service");
 const Company = require("../models/Company.model");
 const Employee = require("../models/Employee.model");
 const { successResponse, errorResponse } = require("../utils/response.util");
 
+const ITINERARY_CREDIT_COST = 50;
+
 // Helper to resolve company profile
 const getCompanyForUser = async (user) => {
+  console.log("came inside get company");
+  
   if (user.role === "super_admin") {
     return null; // Super Admin does not require a company association
   }
@@ -43,17 +48,19 @@ const extractJsonString = (rawText) => {
 
 const generatePreview = async (req, res) => {
   try {
-    const { title, destination, duration, price, maxParticipants, budget, interests } = req.body;
+    const { title, from, to, duration, price, maxParticipants, budget, interests } = req.body;
+    console.log(req.body, " preview request");
 
-    if (!title || !destination || !duration || !price || !maxParticipants) {
+    if (!title || !from || !to || !duration || !price || !maxParticipants) {
       return errorResponse(res, {
         statusCode: 400,
-        message: "Title, destination, duration, price, and maxParticipants are required.",
+        message: "Title, from, to, duration, price, and maxParticipants are required.",
       });
     }
 
     const isSuperAdmin = req.user.role === "super_admin";
     const company = await getCompanyForUser(req.user);
+    console.log("after company", company);
 
     // Require company profile ONLY IF the user is NOT a super_admin
     if (!isSuperAdmin && !company) {
@@ -64,24 +71,26 @@ const generatePreview = async (req, res) => {
     }
 
     // 1. AI CREDIT PRE-CHECK (Skip for Super Admin)
-    const ESTIMATED_CREDIT_COST = 50; // Set credit cost per AI generation call
+    if (!isSuperAdmin && company) {
+      const creditCheck = await aiCreditService.checkCredits(company._id, ITINERARY_CREDIT_COST);
 
-    if (!isSuperAdmin) {
-      const totalCredits = company.aiCredits?.total || 0;
-      const usedCredits = company.aiCredits?.used || 0;
-      const remainingCredits = totalCredits - usedCredits;
-
-      if (remainingCredits < ESTIMATED_CREDIT_COST) {
+      if (!creditCheck.hasEnough) {
         return errorResponse(res, {
-          statusCode: 400,
-          message: `Insufficient AI credits. You have ${Math.max(0, remainingCredits)} credits remaining, but this action requires ${ESTIMATED_CREDIT_COST}.`,
+          statusCode: 402,
+          message: `Insufficient AI credits. You have ${creditCheck.remaining} credits remaining, but this action requires ${ITINERARY_CREDIT_COST}.`,
+          data: {
+            purchaseRequired: true,
+            required: ITINERARY_CREDIT_COST,
+            remaining: creditCheck.remaining,
+          },
         });
       }
     }
 
-    // 1. Build prompt and call AI Manager
+    // 2. Build prompt and call AI Manager
     const prompt = promptBuilder.buildTravelPlanPrompt({
-      destination,
+      from,
+      to,
       duration,
       budget: budget || price,
       interests,
@@ -96,14 +105,14 @@ const generatePreview = async (req, res) => {
       });
     }
 
-    // 2. Extract content string
+    // 3. Extract content string
     let aiText = rawResult.content || rawResult.data || rawResult.text || "";
 
     if (typeof aiText === "object") {
       aiText = JSON.stringify(aiText);
     }
 
-    // 3. Clean and isolate JSON string
+    // 4. Clean and isolate JSON string
     const cleanedJsonString = extractJsonString(aiText);
 
     let aiData;
@@ -120,32 +129,36 @@ const generatePreview = async (req, res) => {
       });
     }
 
- 
-    // credit skip for super admin
+    // 5. CREDIT DEDUCTION & AUDIT TRANSACTION LOGGING (Skip for Super Admin)
+    let remainingCredits = null;
     if (!isSuperAdmin && company) {
-      await Company.findByIdAndUpdate(company._id, {
-        $inc: { "aiCredits.used": ESTIMATED_CREDIT_COST },
-        $set: { "aiCredits.lastUsedAt": new Date() },
+      const deductionResult = await aiCreditService.deductCredits({
+        companyId: company._id,
+        credits: ITINERARY_CREDIT_COST,
+        description: `Generated AI Tour Preview for "${title}" (${from} to ${to})`,
       });
+      remainingCredits = deductionResult.remaining;
     }
 
-    // 4. Safe key extraction
+    // 6. Safe key extraction
     const parsedItinerary = aiData.itinerary || aiData.data?.itinerary || [];
     const parsedBudget = aiData.budgetBreakdown || aiData.data?.budgetBreakdown || {};
     const parsedTips = aiData.travelTips || aiData.data?.travelTips || [];
     const parsedBestTime = aiData.bestTimeToVisit || aiData.data?.bestTimeToVisit || "";
     const parsedNotes = aiData.importantNotes || aiData.data?.importantNotes || [];
+    const parsedFaqs = aiData.faqs || aiData.data?.faqs || [];
 
-    // 5. Return preview payload 
+    // 7. Return preview payload 
     return successResponse(res, {
       statusCode: 200,
       message: "AI tour itinerary preview generated successfully.",
       data: {
-        company: company ? company._id : null, // Set null for Super Admin
+        company: company ? company._id : null,
         createdBy: req.user.id,
         title,
-        description: req.body.description || `AI-generated tour package for ${destination}`,
-        destination,
+        description: req.body.description || `AI-generated tour package from ${from} to ${to}`,
+        from,
+        to,
         duration,
         price,
         maxParticipants,
@@ -157,6 +170,10 @@ const generatePreview = async (req, res) => {
         travelTips: parsedTips,
         bestTimeToVisit: parsedBestTime,
         importantNotes: parsedNotes,
+        faqs: parsedFaqs,
+
+        // Balance Metadata for Frontend
+        remainingCredits,
       },
     });
   } catch (error) {

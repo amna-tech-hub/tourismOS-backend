@@ -7,12 +7,18 @@ const restrictTo = require("../middleware/role.middleware");
 const checkSafetyController = require("../controllers/check-safety.controller");
 
 // Single Endpoint: Generate Itinerary via AI and Save directly to DB
+const imageController=require('../controllers/ai-image.controller');
+const checkAICredits = require("../middleware/checkAICredits");
+router.post("/generate-cover-image", isAuth,imageController.generateCoverImage);
+
 router.post(
   "/generate-preview",
   isAuth,
   restrictTo("company_admin", "employee","super_admin"),
+  checkAICredits(50),
   aiController.generatePreview
 );
+
 router.post(
   "/tour-detail",
   isAuth,

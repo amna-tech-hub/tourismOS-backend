@@ -3,6 +3,7 @@ const Company = require("../models/Company.model");
 const Employee = require("../models/Employee.model");
 const { successResponse, errorResponse } = require("../utils/response.util");
 const ApiFeatures = require("../utils/apiFeatures.util");
+const tourSafetyService = require("../services/safety/tourSafety.service");
 
 // Helper to resolve company ID based on role
 const getCompanyForUser = async (user, requestedCompanyId = null) => {
@@ -37,7 +38,8 @@ const createTour = async (req, res) => {
       companyId, // Allowed when super_admin creates a tour for a specific company
       title,
       description,
-      destination,
+      from, // Replaced destination
+      to,   // Replaced destination
       duration,
       price,
       maxParticipants,
@@ -47,6 +49,7 @@ const createTour = async (req, res) => {
       travelTips,
       bestTimeToVisit,
       importantNotes,
+      faqs,
       coverImage,
       images,
     } = req.body;
@@ -72,7 +75,8 @@ const createTour = async (req, res) => {
       createdBy: req.user.id,
       title,
       description,
-      destination,
+      from,
+      to,
       duration,
       price,
       maxParticipants,
@@ -82,6 +86,7 @@ const createTour = async (req, res) => {
       travelTips,
       bestTimeToVisit,
       importantNotes,
+      faqs,
       coverImage,
       images,
     });
@@ -245,7 +250,8 @@ const updateTour = async (req, res) => {
     const allowedUpdates = [
       "title",
       "description",
-      "destination",
+      "from", // Replaced destination
+      "to",   // Replaced destination
       "duration",
       "price",
       "maxParticipants",
@@ -255,6 +261,7 @@ const updateTour = async (req, res) => {
       "travelTips",
       "bestTimeToVisit",
       "importantNotes",
+      "faqs",
       "coverImage",
       "images",
     ];
@@ -335,13 +342,12 @@ const deleteTour = async (req, res) => {
     });
   }
 };
-// src/controllers/tour.controller.js
-const tourSafetyService = require("../services/safety/tourSafety.service");
 
 const getTourDetails = async (req, res) => {
   try {
     const { id } = req.body;
-console.log("came inside tour-detail",id)
+    console.log("came inside tour-detail", id);
+
     // 1. Fetch tour from MongoDB
     const tour = await Tour.findOne({ _id: id, isDeleted: { $ne: true } })
       .populate("company", "companyName logo")
@@ -374,7 +380,6 @@ console.log("came inside tour-detail",id)
     });
   }
 };
-
 
 module.exports = {
   getTourDetails,
