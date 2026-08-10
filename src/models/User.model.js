@@ -38,9 +38,9 @@ const UserSchema = new mongoose.Schema(
       ],
     },
     profilePicture: {
-      type: String,
-      default: null,
-    },
+        url: { type: String, default: null },
+        public_id: { type: String, default: null },
+      },
 
     // User Settings
     role: {
@@ -57,61 +57,14 @@ const UserSchema = new mongoose.Schema(
     fcmTokens: [
     { type: String }
   ],
-
-    // Preferences
-    // preferences: {
-    //   language: {
-    //     type: String,
-    //     default: "en",
-    //   },
-    //   currency: {
-    //     type: String,
-    //     default: "PKR",
-    //   },
-    //   timezone: {
-    //     type: String,
-    //     default: "Asia/Karachi",
-    //   },
-    //   notifications: {
-    //     email: { type: Boolean, default: true },
-    //     push: { type: Boolean, default: true },
-    //     sms: { type: Boolean, default: false },
-    //   },
-    //   travelPreferences: {
-    //     interests: [String],
-    //     budgetRange: {
-    //       min: Number,
-    //       max: Number,
-    //     },
-    //     preferredDestinations: [String],
-    //   },
-    // },
-
     // Verification
     emailVerified: {
       type: Boolean,
       default: false,
     },
 
-    //     verificationToken: {
-    //       type: String,
-    //       select: false,
-    //     },
-    //     verificationTokenExpires: {
-    //     type: Date,
-    //     select: false,
-    // },
-    //     resetPasswordToken: {
-    //       type: String,
-    //       select: false,
-    //     },
-    //     resetPasswordExpires: {
-    //       type: Date,
-    //       select: false,
-    //     },
-
     // Base Schema (Audit Fields)
-    // ...baseFields,
+     ...baseFields,
   },
   {
     timestamps: true,

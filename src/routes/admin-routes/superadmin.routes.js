@@ -19,5 +19,6 @@ router.delete("/companies/:id", companyController.softDeleteCompany);
 router.patch("/companies/:id/suspend", companyController.suspendCompany);
 router.patch("/companies/:id/activate", companyController.activateCompany);
 router.get("/companies/:id/stats", companyController.getCompanyStats);
+router.get("/admin/fraud-attempts", companyController.getFraudAttempts);
 
 module.exports = router;

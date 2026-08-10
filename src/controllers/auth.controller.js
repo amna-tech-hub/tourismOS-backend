@@ -18,6 +18,8 @@ const { successResponse, errorResponse } = require("../utils/response.util");
 
 const register = async (req, res) => {
   try {
+    console.log(" request came ",req);
+    
     const { name, email, password, phone, gender } = req.body;
 
     if (!name || !email || !password) {
@@ -272,7 +274,6 @@ const login = async (req, res) => {
         message: "Please verify your email using OTP before logging in.",
       });
     }
-console.log(password, user.password);
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
@@ -525,6 +526,7 @@ const acceptInvite = async (req, res) => {
         {
           ownerId: user._id,
           verificationStatus: "verified",
+          status:"Active"
         }
       );
     }
@@ -567,45 +569,8 @@ const acceptInvite = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req, res) => {
-  try {
-    const filterCriteria = {
-      role: "6a5e05f512174bacfa8ec2ec",
-    };
 
-    const baseQuery = User.find(filterCriteria).populate("role", "name");
-    const totalDocuments = await User.countDocuments(filterCriteria);
 
-    const features = new ApiFeatures(baseQuery, req.query)
-      .search(["name", "email", "phone"])
-      .filter()
-      .sort()
-      .paginate();
-
-    const users = await features.query;
-
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-
-    return successResponse(res, {
-      statusCode: 200,
-      message: "Users fetched successfully.",
-      data: users,
-      meta: {
-        totalDocuments,
-        page,
-        limit,
-        totalPages: Math.ceil(totalDocuments / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Get All Users Error:", error);
-    return errorResponse(res, {
-      statusCode: 500,
-      message: "Internal Server Error",
-    });
-  }
-};
 
 module.exports = {
   register,
@@ -616,5 +581,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   acceptInvite,
-  getAllUsers,
+  
+ 
 };

@@ -16,7 +16,7 @@ const paymentSchema = new mongoose.Schema(
     },
     purpose: {
       type: String,
-      enum: ["booking", "ai_credit", "subscription"],
+      enum: ["booking", "subscription"],  //subscription for ai credits
       required: true,
     },
     referenceId: {

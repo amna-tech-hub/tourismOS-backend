@@ -43,6 +43,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Routes
+const usersRoutes=require('./routes/traveler/user.routes')
+
 const adminRoutes = require('./routes/admin-routes/superadmin.routes');
 const authRoutes = require('./routes/auth.routes');
 const companyRoutes = require('./routes/company-routes/company-admin.routes');
@@ -54,23 +56,29 @@ const companyBookingRoutes = require('./routes/company-routes/booking.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const reviewRoutes = require('./routes/traveler/review.routes');
 const paymentRoutes = require('./routes/payment.routes');
-const travelJournal=require('./routes/travelJournal.routes')
-const subscriptionPlan=require('./routes/subscriptionPlan.routes')
-const subscriptionCheckout=require('./routes/subscription.routes')
+const travelJournalRoutes=require('./routes/travelJournal.routes')
+const subscriptionPlanRoutes=require('./routes/subscriptionPlan.routes')
+const subscriptionCheckoutRoutes=require('./routes/subscription.routes')
+const adminDashboardRoutes=require('./routes/admin-routes/dashboard.routes')
+
 
 app.use('/api/admin', adminRoutes);
+
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/auth', authRoutes);
+app.use("/api/users", usersRoutes);
+
 app.use('/api/company', companyRoutes);
 app.use('/api/company/employees', companyEmployeeRoutes);
 app.use('/api/tours', tourRoutes);
 app.use("/api/upload", uploadRouter);
-app.use("/api/subscription",subscriptionCheckout);
-app.use("/api/plans", subscriptionPlan);
+app.use("/api/subscription",subscriptionCheckoutRoutes);
+app.use("/api/plans", subscriptionPlanRoutes);
 app.use("/api", travellerBookingRoutes);
 app.use("/company/bookings", companyBookingRoutes);
 app.use("/api/notification", notificationRoutes);
 app.use("/api/tour/review", reviewRoutes);
-app.use("/api/travel-journals", travelJournal);
+app.use("/api/travel-journals", travelJournalRoutes);
 app.use("/api/payments", paymentRoutes);
 
 // Health Check 

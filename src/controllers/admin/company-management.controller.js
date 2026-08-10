@@ -48,6 +48,7 @@ const createCompany = async (req, res) => {
             email,
             phone,
             address,
+            status:"inactive",
             createdBy: req.user.id,
         });
 console.log(company," looking id in company");
@@ -293,7 +294,6 @@ const Booking = require("../../models/Booking.model");
 // 8. Company Dashboard Stats (Placeholder)
 const getCompanyStats = async (req, res) => {
     try {
-     
         const company = await Company.findOne({ _id: req.params.id, isDeleted: false });
 
         if (!company) {
@@ -303,59 +303,63 @@ const getCompanyStats = async (req, res) => {
             });
         }
 
-    const totalEmployees = await Employee.countDocuments({
-  company: company._id,
-  isDeleted: false,
-});
+        // Calculate AI credit statistics
+        const totalCredits = company.aiCredits?.total || 0;
+        const usedCredits = company.aiCredits?.used || 0;
+        const remainingCredits = Math.max(0, totalCredits - usedCredits);
 
-const totalTours = await Tour.countDocuments({
-  company: company._id,
-  isDeleted: false,
-});
+        // Fetch counts and revenue in parallel for performance optimization
+        const [totalEmployees, totalTours, totalBookings, revenueResult] = await Promise.all([
+            Employee.countDocuments({ company: company._id, isDeleted: false }),
+            Tour.countDocuments({ company: company._id, isDeleted: false }),
+            Booking.countDocuments({ company: company._id, isDeleted: false }),
+            Booking.aggregate([
+                {
+                    $match: {
+                        company: company._id,
+                        status: "confirmed",
+                        paymentStatus: "paid",
+                        isDeleted: false,
+                    },
+                },
+                {
+                    $group: {
+                        _id: null,
+                        revenue: { $sum: "$totalAmount" },
+                    },
+                },
+            ]),
+        ]);
 
-const totalBookings = await Booking.countDocuments({
-  company: company._id,
-  isDeleted: false,
-});
+        const revenue = revenueResult.length > 0 ? revenueResult[0].revenue : 0;
 
-const revenueResult = await Booking.aggregate([
-  {
-    $match: {
-      company: company._id,
-      status: "completed",
-      paymentStatus: "paid",
-      isDeleted: false,
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      revenue: {
-        $sum: "$totalAmount",
-      },
-    },
-  },
-]);
-
-const revenue =
-  revenueResult.length > 0 ? revenueResult[0].revenue : 0;
-
-return successResponse(res, {
-  statusCode: 200,
-  message: "Company stats fetched successfully.",
-  data: {
-    companyId: company._id,
-    companyName: company.companyName,
-    status: company.status,
-    createdAt: company.createdAt,
-    stats: {
-      totalEmployees,
-      totalTours,
-      totalBookings,
-      revenue,
-    },
-  },
-});
+        return successResponse(res, {
+            statusCode: 200,
+            message: "Company stats fetched successfully.",
+            data: {
+                companyId: company._id,
+                companyName: company.companyName,
+                email: company.email,
+                address:company.address,
+                phone: company.phone || null,
+                status: company.status,
+                createdAt: company.createdAt,
+                stats: {
+                    totalEmployees,
+                    totalTours,
+                    totalBookings,
+                    revenue,
+                    aiCredits: {
+                        total: totalCredits,
+                        used: usedCredits,
+                        remaining: remainingCredits,
+                        plan: company.aiCredits?.plan || "Starter",
+                        expiresAt: company.aiCredits?.expiresAt || null,
+                        lastUsedAt: company.aiCredits?.lastUsedAt || null,
+                    },
+                },
+            },
+        });
     } catch (error) {
         console.error("Company Stats Error:", error);
         return errorResponse(res, {
@@ -364,17 +368,10 @@ return successResponse(res, {
         });
     }
 };
-
-// controllers/admin.controller.js
-// src/controllers/admin.controller.js
 const Payment = require("../../models/Payment.model");
 
-/**
- * @desc Get all fraud attempts for Admin Dashboard
- * @route GET /api/v1/admin/fraud-attempts
- * @access Private (Super Admin)
- */
-exports.getFraudAttempts = async (req, res) => {
+
+const getFraudAttempts = async (req, res) => {
   try {
     const fraudAttempts = await Payment.find({ status: "fraud_attempt" })
       .sort({ createdAt: -1 })
@@ -416,4 +413,5 @@ module.exports = {
     activateCompany,
     softDeleteCompany,
     getCompanyStats,
+    getFraudAttempts
 };

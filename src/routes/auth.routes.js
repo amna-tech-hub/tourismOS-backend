@@ -1,25 +1,26 @@
 const express = require("express");
-
 const router = express.Router();
 
 const authController = require("../controllers/auth.controller");
+
 const { otpLimiter, loginLimiter } = require("../middleware/rateLimiter");
-const { registerValidator, loginValidator, resetPasswordValidator, acceptInvitationValidator } = require("../validators/validator");
-const isAuth=require('../middleware/authorization.middleware')
-const restrictTo=require('../middleware/role.middleware')
-router.post("/register",otpLimiter, registerValidator,authController.register);
+const {
+  registerValidator,
+  loginValidator,
+  resetPasswordValidator,
+  acceptInvitationValidator,
+} = require("../validators/validator");
+const isAuth = require("../middleware/authorization.middleware");
+const restrictTo = require("../middleware/role.middleware");
 
-// Route to verify the user-submitted OTP
-router.post('/verify-otp',authController.verifyOTP);
-router.post('/resend-otp', otpLimiter,authController.resendOTP);
-
-router.post("/login",loginLimiter,loginValidator, authController.login);
+// Public Auth Routes
+router.post("/register", otpLimiter, registerValidator, authController.register);
+router.post("/verify-otp", authController.verifyOTP);
+router.post("/resend-otp", otpLimiter, authController.resendOTP);
+router.post("/login", loginLimiter, loginValidator, authController.login);
 router.post("/logout", authController.logout);
-router.get("/users", isAuth,restrictTo("super_admin"),authController.getAllUsers);
+router.post("/forgot-password", otpLimiter, authController.forgotPassword);
+router.post("/reset-password", loginLimiter, resetPasswordValidator, authController.resetPassword);
+router.post("/accept-invitation", acceptInvitationValidator, authController.acceptInvite);
 
-router.post('/forgot-password', otpLimiter, authController.forgotPassword);
-router.post('/reset-password', loginLimiter, resetPasswordValidator,authController.resetPassword);
-router.post('/accept-invitation', acceptInvitationValidator,authController.acceptInvite);
-
-
-module.exports =   router
+module.exports = router;
