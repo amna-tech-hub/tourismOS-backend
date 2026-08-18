@@ -292,81 +292,153 @@ const Employee = require("../../models/Employee.model");
 const Tour = require("../../models/Tour.model");
 const Booking = require("../../models/Booking.model");
 // 8. Company Dashboard Stats (Placeholder)
+// src/controllers/admin/company.controller.js (Updated getCompanyStats)
+
 const getCompanyStats = async (req, res) => {
-    try {
-        const company = await Company.findOne({ _id: req.params.id, isDeleted: false });
+  try {
+    const company = await Company.findOne({ 
+      _id: req.params.id, 
+      isDeleted: false 
+    });
 
-        if (!company) {
-            return errorResponse(res, {
-                statusCode: 404,
-                message: "Company not found.",
-            });
-        }
-
-        // Calculate AI credit statistics
-        const totalCredits = company.aiCredits?.total || 0;
-        const usedCredits = company.aiCredits?.used || 0;
-        const remainingCredits = Math.max(0, totalCredits - usedCredits);
-
-        // Fetch counts and revenue in parallel for performance optimization
-        const [totalEmployees, totalTours, totalBookings, revenueResult] = await Promise.all([
-            Employee.countDocuments({ company: company._id, isDeleted: false }),
-            Tour.countDocuments({ company: company._id, isDeleted: false }),
-            Booking.countDocuments({ company: company._id, isDeleted: false }),
-            Booking.aggregate([
-                {
-                    $match: {
-                        company: company._id,
-                        status: "confirmed",
-                        paymentStatus: "paid",
-                        isDeleted: false,
-                    },
-                },
-                {
-                    $group: {
-                        _id: null,
-                        revenue: { $sum: "$totalAmount" },
-                    },
-                },
-            ]),
-        ]);
-
-        const revenue = revenueResult.length > 0 ? revenueResult[0].revenue : 0;
-
-        return successResponse(res, {
-            statusCode: 200,
-            message: "Company stats fetched successfully.",
-            data: {
-                companyId: company._id,
-                companyName: company.companyName,
-                email: company.email,
-                address:company.address,
-                phone: company.phone || null,
-                status: company.status,
-                createdAt: company.createdAt,
-                stats: {
-                    totalEmployees,
-                    totalTours,
-                    totalBookings,
-                    revenue,
-                    aiCredits: {
-                        total: totalCredits,
-                        used: usedCredits,
-                        remaining: remainingCredits,
-                        plan: company.aiCredits?.plan || "Starter",
-                        expiresAt: company.aiCredits?.expiresAt || null,
-                        lastUsedAt: company.aiCredits?.lastUsedAt || null,
-                    },
-                },
-            },
-        });
-    } catch (error) {
-        console.error("Company Stats Error:", error);
-        return errorResponse(res, {
-            statusCode: 500,
-            message: "Internal Server Error",
-        });
+    if (!company) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Company not found.",
+      });
     }
+
+    // Calculate AI credit statistics
+    const totalCredits = company.aiCredits?.total || 0;
+    const usedCredits = company.aiCredits?.used || 0;
+    const remainingCredits = Math.max(0, totalCredits - usedCredits);
+
+    // ============================================
+    // 🆕 FIX: Get Company's ACTUAL revenue (their payout)
+    // ============================================
+    const [
+      totalEmployees,
+      totalTours,
+      totalBookings,
+      // 🆕 Company's actual revenue (what they received)
+      companyRevenueResult,
+      // 🆕 Commission paid to platform
+      commissionPaidResult,
+      // 🆕 Average booking value for this company
+      avgBookingResult,
+    ] = await Promise.all([
+      Employee.countDocuments({ company: company._id, isDeleted: false }),
+      Tour.countDocuments({ company: company._id, isDeleted: false }),
+      Booking.countDocuments({ company: company._id, isDeleted: false }),
+      
+      // 🆕 Company's actual revenue from paid bookings
+      Payment.aggregate([
+        {
+          $match: {
+            companyId: company._id,
+            status: "paid",
+            purpose: "booking",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$companyPayout" },
+            totalBookings: { $sum: 1 },
+            totalBookingValue: { $sum: "$amount" },
+          },
+        },
+      ]),
+      
+      // 🆕 Commission paid to platform
+      Payment.aggregate([
+        {
+          $match: {
+            companyId: company._id,
+            status: "paid",
+            purpose: "booking",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalCommission: { $sum: "$platformCommission" },
+          },
+        },
+      ]),
+      
+      // 🆕 Average booking value
+      Payment.aggregate([
+        {
+          $match: {
+            companyId: company._id,
+            status: "paid",
+            purpose: "booking",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            avgBookingValue: { $avg: "$amount" },
+          },
+        },
+      ]),
+    ]);
+
+    const companyRevenue = companyRevenueResult.length > 0 
+      ? companyRevenueResult[0] 
+      : { totalRevenue: 0, totalBookings: 0, totalBookingValue: 0 };
+      
+    const commissionPaid = commissionPaidResult.length > 0 
+      ? commissionPaidResult[0].totalCommission 
+      : 0;
+      
+    const avgBooking = avgBookingResult.length > 0 
+      ? avgBookingResult[0].avgBookingValue 
+      : 0;
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Company stats fetched successfully.",
+      data: {
+        companyId: company._id,
+        companyName: company.companyName,
+        email: company.email,
+        address: company.address,
+        phone: company.phone || null,
+        status: company.status,
+        createdAt: company.createdAt,
+        verificationStatus:company.verificationStatus,
+        stats: {
+          totalEmployees,
+          totalTours,
+          totalBookings,
+          // 🆕 Revenue Metrics (Company's actual earnings)
+          revenue: {
+            total: companyRevenue.totalRevenue, // Company's actual revenue
+            totalBookingValue: companyRevenue.totalBookingValue, // Gross sales
+            platformCommission: commissionPaid, // What they paid to platform
+            netRevenue: companyRevenue.totalRevenue - commissionPaid, // After commission
+            averageBookingValue: Math.round(avgBooking),
+          },
+          aiCredits: {
+            total: totalCredits,
+            used: usedCredits,
+            remaining: remainingCredits,
+            plan: company.aiCredits?.plan || "Starter",
+            expiresAt: company.aiCredits?.expiresAt || null,
+            lastUsedAt: company.aiCredits?.lastUsedAt || null,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Company Stats Error:", error);
+    return errorResponse(res, {
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
 };
 const Payment = require("../../models/Payment.model");
 

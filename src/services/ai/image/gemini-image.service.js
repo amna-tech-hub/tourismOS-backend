@@ -78,4 +78,4 @@ class GeminiImageService {
   }
 }
 
-module.exports = GeminiImageService;
+module.exports = new GeminiImageService();

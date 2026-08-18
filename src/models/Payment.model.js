@@ -16,12 +16,12 @@ const paymentSchema = new mongoose.Schema(
     },
     purpose: {
       type: String,
-      enum: ["booking", "subscription"],  //subscription for ai credits
+      enum: ["booking", "subscription"],
       required: true,
     },
     referenceId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: false, // Optional for orphan fraud records
+      required: false,
     },
     amount: {
       type: Number,
@@ -32,6 +32,35 @@ const paymentSchema = new mongoose.Schema(
       default: "PKR",
       uppercase: true,
     },
+    companyId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Company",
+  required: false, // For subscriptions, it's not needed
+},
+    
+//  commision fields
+    platformCommission: {
+      type: Number,
+      default: 0,
+      min: 0,
+      // For bookings: 10% of amount
+      // For subscriptions: 0 (we keep 100%)
+    },
+    companyPayout: {
+      type: Number,
+      default: 0,
+      min: 0,
+      // For bookings: 90% of amount
+      // For subscriptions: 0
+    },
+    commissionRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+      // Store the rate used (e.g., 10)
+    },
+    
     status: {
       type: String,
       enum: ["pending", "paid", "failed", "refunded", "fraud_attempt", "system_error"],
@@ -69,5 +98,9 @@ const paymentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// 🆕 Index for faster analytics queries
+paymentSchema.index({ purpose: 1, status: 1, paidAt: -1 });
+paymentSchema.index({ companyPayout: 1, platformCommission: 1 });
 
 module.exports = mongoose.model("Payment", paymentSchema);

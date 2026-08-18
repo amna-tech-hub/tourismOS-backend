@@ -32,6 +32,7 @@ const UserSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
+       required: [true, "Phone number is required"],
       match: [
         /^(\+92|0)?3[0-9]{9}$/,
         "Please enter a valid Pakistani phone number",

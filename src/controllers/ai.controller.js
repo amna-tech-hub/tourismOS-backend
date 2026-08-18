@@ -10,11 +10,14 @@ const ITINERARY_CREDIT_COST = 50;
 // Helper to resolve company profile
 const getCompanyForUser = async (user) => {
   console.log("came inside get company");
+  console.log(user,"ll");
   
   if (user.role === "super_admin") {
     return null; // Super Admin does not require a company association
   }
   if (user.role === "company_admin") {
+    console.log("inside company admin");
+    
     return await Company.findOne({ ownerId: user.id, isDeleted: false });
   }
   if (user.role === "employee") {

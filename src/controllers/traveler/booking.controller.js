@@ -56,6 +56,7 @@ const createBooking = async (req, res) => {
       amount: totalAmount,
       currency: "PKR",
       status: "pending",
+      companyId: tour.company,
     });
 
     // 6. Link Payment ID back to Booking

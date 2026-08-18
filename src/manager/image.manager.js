@@ -7,28 +7,96 @@ class ImageManager {
     this.providers = [
       geminiImageService,
       fluxService,
-        pollinationsService
+      pollinationsService,
     ];
+
+    // Debug provider exports
+    console.log("\n========== IMAGE PROVIDERS ==========");
+
+    this.providers.forEach((provider, index) => {
+      console.log(`Provider ${index + 1}:`);
+      console.log("provider:", provider);
+      console.log("name:", provider?.provider);
+      console.log(
+        "generateImage:",
+        typeof provider?.generateImage
+      );
+      console.log("====================================");
+    });
   }
 
   async generateImage(prompt) {
     let lastError = null;
 
     for (const provider of this.providers) {
-      console.log(`Trying provider: ${provider.provider}`);
+      const providerName =
+        provider?.provider || "Unknown Provider";
 
-      const result = await provider.generateImage(prompt);
+      console.log(
+        `\n🖼️ Trying image provider: ${providerName}`
+      );
 
-      if (result.success) {
-        console.log(`✅ Success from ${provider.provider}`);
-        return result;
+      // Don't crash if export is wrong
+      if (
+        !provider ||
+        typeof provider.generateImage !== "function"
+      ) {
+        console.error(
+          `❌ ${providerName} does not implement generateImage()`
+        );
+
+        lastError = {
+          success: false,
+          provider: providerName,
+          error: `${providerName} does not implement generateImage()`,
+        };
+
+        continue;
       }
 
-      console.log(`-- ${provider.provider} failed`);
-      lastError = result;
+      try {
+        const result =
+          await provider.generateImage(prompt);
+
+        if (result?.success) {
+          console.log(
+            `✅ Success from ${providerName}`
+          );
+
+          return result;
+        }
+
+        console.log(
+          `❌ ${providerName} failed:`,
+          result?.error
+        );
+
+        lastError = result;
+
+      } catch (error) {
+        console.error(
+          `❌ ${providerName} threw an exception:`,
+          error.message
+        );
+
+        lastError = {
+          success: false,
+          provider: providerName,
+          error: error.message,
+        };
+
+        // IMPORTANT:
+        // Continue to next provider
+        continue;
+      }
     }
 
-    return lastError;
+    return (
+      lastError || {
+        success: false,
+        error: "All image providers failed.",
+      }
+    );
   }
 }
 

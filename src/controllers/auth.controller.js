@@ -526,7 +526,7 @@ const acceptInvite = async (req, res) => {
         {
           ownerId: user._id,
           verificationStatus: "verified",
-          status:"Active"
+          status:"active"
         }
       );
     }

@@ -1,3 +1,4 @@
+// src/models/Booking.model.js
 const mongoose = require("mongoose");
 const baseFields = require("./base/base.schema");
 
@@ -8,10 +9,10 @@ const bookingSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-      payment: {
+    payment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment"
-      },
+    },
     tour: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
@@ -48,6 +49,16 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "refunded"],
       default: "pending",
+    },
+
+    // 🆕 Commission fields for quick access (duplicated from payment)
+    platformCommission: {
+      type: Number,
+      default: 0,
+    },
+    companyPayout: {
+      type: Number,
+      default: 0,
     },
 
     ...baseFields,

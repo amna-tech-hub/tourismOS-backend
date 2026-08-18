@@ -78,7 +78,18 @@ const companySchema = new mongoose.Schema(
         default: "Starter",
       },
     },
-         
+         totalRevenue: {
+    type: Number,
+    default: 0,
+  },
+  totalCommissionPaid: {
+    type: Number,
+    default: 0,
+  },
+  totalBookings: {
+    type: Number,
+    default: 0,
+  },
       
       ...baseFields
     },

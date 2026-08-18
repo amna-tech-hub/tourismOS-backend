@@ -6,40 +6,42 @@ const ApiFeatures = require("../utils/apiFeatures.util");
 const tourSafetyService = require("../services/safety/tourSafety.service");
 
 // Helper to resolve company ID based on role
-const getCompanyForUser = async (user, requestedCompanyId = null) => {
-  // 1. Super Admin can target any company provided in req.body.companyId
-  if (user.role === "super_admin") {
-    if (requestedCompanyId) {
-      return await Company.findOne({ _id: requestedCompanyId, isDeleted: false });
-    }
-    // Optional: Super admin's personal company profile if no companyId was passed
-    return await Company.findOne({ ownerId: user.id, isDeleted: false });
-  }
-
-  // 2. Company Admin
+const getCompanyForUser = async (user) => {
+  // Company Admin
   if (user.role === "company_admin") {
-    return await Company.findOne({ ownerId: user.id, isDeleted: false });
+    return await Company.findOne({
+      ownerId: user.id,
+      isDeleted: false,
+    });
   }
 
-  // 3. Employee
+  // Employee
   if (user.role === "employee") {
-    const employee = await Employee.findOne({ user: user.id, isDeleted: { $ne: true } });
+    const employee = await Employee.findOne({
+      user: user.id,
+      isDeleted: { $ne: true },
+    });
+
     if (!employee) return null;
-    return await Company.findOne({ _id: employee.company, isDeleted: false });
+
+    return await Company.findOne({
+      _id: employee.company,
+      isDeleted: false,
+    });
   }
 
   return null;
 };
 
 // Create Tour
+// Create Tour
 const createTour = async (req, res) => {
   try {
     const {
-      companyId, // Allowed when super_admin creates a tour for a specific company
       title,
       description,
-      from, // Replaced destination
-      to,   // Replaced destination
+      from,
+      to,
       duration,
       price,
       maxParticipants,
@@ -54,25 +56,43 @@ const createTour = async (req, res) => {
       images,
     } = req.body;
 
-    let company = null;
+    let companyId = null;
 
-    // Check if super_admin is creating a global tour (without a company) or targeting one
-    if (req.user.role === "super_admin" && !companyId) {
-      // Super admin creating platform-wide/global tours without associating a company
-      company = null;
-    } else {
-      company = await getCompanyForUser(req.user, companyId);
+    // ==========================================
+    // SUPER ADMIN
+    // Platform tour → company is intentionally null
+    // ==========================================
+
+    if (req.user.role === "super_admin") {
+      companyId = null;
+    }
+
+    // ==========================================
+    // COMPANY ADMIN / EMPLOYEE
+    // Resolve company from authenticated user
+    // ==========================================
+
+    else {
+      const company = await getCompanyForUser(req.user);
+
       if (!company) {
         return errorResponse(res, {
           statusCode: 404,
           message: "Associated company profile not found.",
         });
       }
+
+      companyId = company._id;
     }
 
+    // ==========================================
+    // CREATE TOUR
+    // ==========================================
+
     const tour = await Tour.create({
-      company: company ? company._id : null,
+      company: companyId,
       createdBy: req.user.id,
+
       title,
       description,
       from,
@@ -80,13 +100,16 @@ const createTour = async (req, res) => {
       duration,
       price,
       maxParticipants,
+
       status: status || "draft",
+
       itinerary,
       budgetBreakdown,
       travelTips,
       bestTimeToVisit,
       importantNotes,
       faqs,
+
       coverImage,
       images,
     });
@@ -96,8 +119,10 @@ const createTour = async (req, res) => {
       message: "Tour created successfully.",
       data: tour,
     });
+
   } catch (error) {
     console.error("Create Tour Error:", error);
+
     return errorResponse(res, {
       statusCode: 500,
       message: error.message || "Internal Server Error",
@@ -106,53 +131,99 @@ const createTour = async (req, res) => {
 };
 
 // Get All Tours for company
+// Get All Tours for company (with pagination)
 const getAllTours = async (req, res) => {
   try {
-    let filter = { isDeleted: false };
+    let filter = {
+      isDeleted: false,
+    };
 
-    // Super admins can view all tours or filter by company via query params (?companyId=xxx)
+    // ==========================================
+    // SUPER ADMIN - Can see ALL tours
+    // Optional: Filter by companyId if provided
+    // ==========================================
+
     if (req.user.role === "super_admin") {
+      // If companyId is provided in query, filter by it
       if (req.query.companyId) {
         filter.company = req.query.companyId;
       }
-    } else {
+      // Otherwise, show ALL tours from ALL companies
+    }
+
+    // ==========================================
+    // COMPANY ADMIN / EMPLOYEE
+    // Can only see their company's tours
+    // ==========================================
+
+    else {
       const company = await getCompanyForUser(req.user);
+
       if (!company) {
         return errorResponse(res, {
           statusCode: 404,
           message: "Associated company profile not found.",
         });
       }
+
       filter.company = company._id;
     }
 
-    const baseQuery = Tour.find(filter).populate("createdBy", "name email");
+    // ==========================================
+    // Get total count BEFORE pagination
+    // ==========================================
+
     const totalDocuments = await Tour.countDocuments(filter);
 
-    const features = new ApiFeatures(baseQuery, req.query)
-      .search()
-      .filter()
-      .sort()
-      .limitFields()
-      .paginate();
+    // ==========================================
+    // Build query with search/filter/sort/pagination
+    // ==========================================
 
+    const baseQuery = Tour.find(filter)
+      .populate("createdBy", "name email")
+      .populate("company", "companyName logo");
+
+   const features = new ApiFeatures(baseQuery, req.query)
+  .search(["title", "from", "to"])
+  .filter()
+  .sort()
+  .limitFields()
+  .paginate();
     const tours = await features.query;
+
+    // ==========================================
+    // Calculate pagination metadata
+    // ==========================================
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const totalPages = Math.ceil(totalDocuments / limit);
+
+    // ==========================================
+    // Return response with pagination metadata
+    // ==========================================
 
     return successResponse(res, {
       statusCode: 200,
       message: "Tours retrieved successfully.",
       data: tours,
-      meta: { totalDocuments },
+      meta: {
+        totalDocuments,
+        totalPages,
+        currentPage: page,
+        limit: limit,
+      },
     });
+
   } catch (error) {
     console.error("Get All Tours Error:", error);
+
     return errorResponse(res, {
       statusCode: 500,
       message: "Internal Server Error",
     });
   }
 };
-
 // Get Public Tours (For end-users / frontend showcase)
 const getPublicTours = async (req, res) => {
   try {
@@ -192,12 +263,16 @@ const getPublicTours = async (req, res) => {
 
 // Get Single Tour by ID
 const getTourById = async (req, res) => {
+  console.log("came inside gettourby id");
+  
   try {
     let filter = { _id: req.params.id, isDeleted: { $ne: true } };
 
     // Restrict non-super_admin users to their company's tours
     if (req.user.role !== "super_admin") {
       const company = await getCompanyForUser(req.user);
+      console.log(company," using the id from here");
+      
       if (!company) {
         return errorResponse(res, {
           statusCode: 404,
@@ -207,7 +282,7 @@ const getTourById = async (req, res) => {
       filter.company = company._id;
     }
 
-    const tour = await Tour.findOne(filter).populate("createdBy", "name email");
+    const tour = await Tour.findOne(filter).populate("createdBy", "companyName email");
 
     if (!tour) {
       return errorResponse(res, {
@@ -229,9 +304,80 @@ const getTourById = async (req, res) => {
     });
   }
 };
+const publishTour = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    let filter = {
+      _id: id,
+      isDeleted: false,
+    };
+
+    // ==========================================
+    // COMPANY ADMIN / EMPLOYEE
+    // Only their company's tours
+    // ==========================================
+
+    if (req.user.role !== "super_admin") {
+      const company = await getCompanyForUser(req.user);
+
+      if (!company) {
+        return errorResponse(res, {
+          statusCode: 404,
+          message: "Associated company profile not found.",
+        });
+      }
+
+      filter.company = company._id;
+    }
+
+    // ==========================================
+    // FIND TOUR
+    // ==========================================
+
+    const tour = await Tour.findOne(filter);
+
+    if (!tour) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Tour not found.",
+      });
+    }
+
+    // ==========================================
+    // ONLY DRAFTS CAN BE PUBLISHED
+    // ==========================================
+
+    if (tour.status === "published") {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: "Tour is already published.",
+      });
+    }
+
+    tour.status = "published";
+
+    await tour.save();
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Tour published successfully.",
+      data: tour,
+    });
+
+  } catch (error) {
+    console.error("Publish Tour Error:", error);
+
+    return errorResponse(res, {
+      statusCode: 500,
+      message: "Failed to publish tour.",
+    });
+  }
+};
 // Update Tour
 const updateTour = async (req, res) => {
+  console.log("came inside updatetour");
+  
   try {
     let filter = { _id: req.params.id, isDeleted: { $ne: true } };
 
@@ -389,4 +535,5 @@ module.exports = {
   updateTour,
   deleteTour,
   getPublicTours,
+  publishTour
 };

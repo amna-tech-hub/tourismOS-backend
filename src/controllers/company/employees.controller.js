@@ -130,7 +130,7 @@ const getAllEmployees = async (req, res) => {
     const baseQuery = Employee.find({
       company: company._id,
       isDeleted: { $ne: true },
-    }).populate("user", "name email phone gender avatar");
+    }).populate("user", "name email phone gender emailVerified");
 
     // 2. Total document count for pagination metadata
     const totalDocuments = await Employee.countDocuments({
@@ -212,7 +212,7 @@ const getEmployeeById = async (req, res) => {
 
 const updateEmployee = async (req, res) => {
   try {
-    const { designation, department, status, joiningDate ,name} = req.body;
+    const { designation, department, status, joiningDate } = req.body;
 
     const company = await getAdminCompany(req.user.id);
     if (!company) {
