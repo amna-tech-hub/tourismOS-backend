@@ -16,6 +16,11 @@ const employeeSchema = new mongoose.Schema(
       // index: true,
       default:null
     },
+       phone: {
+    type: String,
+    trim: true,
+    match: [/^\+?[0-9]{10,15}$/, "Please provide a valid phone number"],
+},
     designation: {
       type: String,
       trim: true,

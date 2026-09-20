@@ -1,4 +1,5 @@
 // src/controllers/upload.controller.js
+const cloudinaryService = require("../services/cloudinary.service");
 const { successResponse, errorResponse } = require("../utils/response.util");
 
 /**
@@ -60,8 +61,46 @@ const uploadMultipleImages = async (req, res) => {
     });
   }
 };
+ 
+const deleteImage = async (req, res) => {
+  try {
+    const { public_id } = req.body;
+
+    if (!public_id) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: "Cloudinary public_id is required.",
+      });
+    }
+
+    const result = await cloudinaryService.deleteImage(public_id);
+
+    if (result.result !== "ok") {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Image could not be deleted from Cloudinary.",
+      });
+    }
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Image deleted successfully.",
+      data: {
+        public_id,
+      },
+    });
+  } catch (error) {
+    console.error("Delete Image Error:", error);
+
+    return errorResponse(res, {
+      statusCode: 500,
+      message: error.message || "Failed to delete image.",
+    });
+  }
+};
 
 module.exports = {
   uploadSingleImage,
   uploadMultipleImages,
+  deleteImage,
 };

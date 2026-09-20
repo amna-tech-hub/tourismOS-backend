@@ -3,7 +3,6 @@ const SubscriptionPlan = require("../models/SubscriptionPlan.model");
 
 exports.createPlan = async (req, res) => {
   try {
-    console.log(req.body);
     
     const plan = await SubscriptionPlan.create(req.body);
     res.status(201).json({ success: true, data: plan });
@@ -51,7 +50,6 @@ exports.getAllPlansAdmin = async (req, res) => {
  */
 exports.updatePlan = async (req, res) => {
   try {
-    console.log(req.body,"request came");
     
     const { id } = req.params;
     const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(id, req.body, {

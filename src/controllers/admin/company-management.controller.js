@@ -51,7 +51,6 @@ const createCompany = async (req, res) => {
             status:"inactive",
             createdBy: req.user.id,
         });
-console.log(company," looking id in company");
 
         // 4. Generate Crypto Invitation Token
         const { rawToken, hashedToken } = generateCryptoToken();
@@ -61,6 +60,7 @@ console.log(company," looking id in company");
             company: company._id,
             user:company._id,
             email: company.email,
+            phone:company.phone,
             role: companyAdminRole._id,
             token: hashedToken,
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Valid for 7 days
@@ -68,7 +68,7 @@ console.log(company," looking id in company");
         });
 
         // 6. Build Inline HTML Email Template with Invitation Link
-        const inviteUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/accept-invitation?token=${rawToken}`;
+        const inviteUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/accept-invitation?token=${rawToken}`;
 
         const emailBody = `
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">

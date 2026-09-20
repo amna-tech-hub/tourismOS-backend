@@ -23,7 +23,6 @@ exports.createCheckoutSession = async (req, res) => {
       currency: plan.currency || "PKR",
       status: "pending",
     });
-console.log(payment," payment");
 
     // 2. Initiate Gateway Session
     const checkoutSession = await paymentManager.createPayment({
@@ -31,10 +30,10 @@ console.log(payment," payment");
       currency: plan.currency || "PKR",
       paymentId: payment._id,
       orderId: plan._id,
+        purpose: "subscription",
       title: `Purchase ${plan.name} Package (${plan.aiCredits} AI Credits)`,
       provider,
     });
-console.log(checkoutSession,"check seccion");
 
     if (checkoutSession.sessionId) {
       payment.sessionId = checkoutSession.sessionId;

@@ -18,7 +18,7 @@ router.post("/register", otpLimiter, registerValidator, authController.register)
 router.post("/verify-otp", authController.verifyOTP);
 router.post("/resend-otp", otpLimiter, authController.resendOTP);
 router.post("/login", loginLimiter, loginValidator, authController.login);
-router.post("/logout", authController.logout);
+router.post("/logout", isAuth,authController.logout);
 router.post("/forgot-password", otpLimiter, authController.forgotPassword);
 router.post("/reset-password", loginLimiter, resetPasswordValidator, authController.resetPassword);
 router.post("/accept-invitation", acceptInvitationValidator, authController.acceptInvite);

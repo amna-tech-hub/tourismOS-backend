@@ -9,14 +9,12 @@ const ITINERARY_CREDIT_COST = 50;
 
 // Helper to resolve company profile
 const getCompanyForUser = async (user) => {
-  console.log("came inside get company");
-  console.log(user,"ll");
+
   
   if (user.role === "super_admin") {
     return null; // Super Admin does not require a company association
   }
   if (user.role === "company_admin") {
-    console.log("inside company admin");
     
     return await Company.findOne({ ownerId: user.id, isDeleted: false });
   }
@@ -52,7 +50,6 @@ const extractJsonString = (rawText) => {
 const generatePreview = async (req, res) => {
   try {
     const { title, from, to, duration, price, maxParticipants, budget, interests } = req.body;
-    console.log(req.body, " preview request");
 
     if (!title || !from || !to || !duration || !price || !maxParticipants) {
       return errorResponse(res, {

@@ -34,7 +34,6 @@ router.post(
 
 router.post(
   "/tour-detail",
-  isAuth,
   tourController.getTourDetails
 );
 
@@ -73,7 +72,7 @@ router.post(
 
 router.get(
   "/",
-  isAuth,
+  
   tourController.getPublicTours
 );
 

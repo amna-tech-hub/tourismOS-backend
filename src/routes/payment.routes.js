@@ -3,6 +3,9 @@ const router = express.Router();
 const paymentController = require("../controllers/payment.controller");
 
 // Stripe Webhook Endpoint (Requires RAW body middleware)
+//  stripe listen --forward-to localhost:5000/api/payments/webhook 
+router.get("/verify-session", paymentController.verifySession);
+
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),

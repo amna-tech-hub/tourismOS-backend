@@ -53,6 +53,7 @@ const inviteEmployee = async (req, res) => {
         const employee = await Employee.create({
            company: company._id,
             designation ,
+            
             department,
             phone,
             address,
@@ -67,6 +68,7 @@ const inviteEmployee = async (req, res) => {
       company: company._id,
       user:employee._id,
       email,
+      phone:employee.phone,
       role: employeeRole._id,
       designation: designation || "Employee",
       department: department || "General",
@@ -76,7 +78,7 @@ const inviteEmployee = async (req, res) => {
     });
 
     // 6. Build Invitation Link and Email Template
-    const inviteUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/accept-invitation?token=${rawToken}`;
+    const inviteUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/accept-invitation?token=${rawToken}`;
 
     const emailBody = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
@@ -140,7 +142,7 @@ const getAllEmployees = async (req, res) => {
 
     // 3. Apply ApiFeatures chain
     const features = new ApiFeatures(baseQuery, req.query)
-      .search(["designation", "department", "phone", "address"])
+      .search(["designation", "department", "phone", "address","name","email"])
       .filter()
       .sort()
       .limitFields()

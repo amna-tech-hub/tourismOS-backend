@@ -3,30 +3,57 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 class StripeService {
   /**
-   * Creates a Checkout Session using generic Payment record details
+   * Creates a Checkout Session supporting both Bookings and Subscriptions
    */
-  async createPayment({ paymentId, amount, currency, title, userEmail }) {
+  async createPayment(paymentData) {
+    const {
+      paymentId,
+      amount,
+      currency = "pkr",
+      title = "Payment",
+      userEmail,
+    } = paymentData;
+
+    // 1. Safely resolve purpose/type (prevents type=undefined in redirect URL)
+    const purpose = paymentData.purpose || paymentData.type || "booking";
+
+    // 2. Determine session mode dynamically based on purpose
+    const mode = purpose === "subscription" ? "subscription" : "payment";
+
+    // 3. Build price data structure
+    const lineItemPriceData = {
+      currency: currency.toLowerCase(),
+      product_data: {
+        name: title,
+      },
+      unit_amount: Math.round(amount * 100), // Convert to smallest currency unit (cents/paisa)
+    };
+
+    // Stripe recurring configuration (Required if mode is "subscription")
+    if (mode === "subscription") {
+      lineItemPriceData.recurring = {
+        interval: "month", // Adjust to "year" if needed
+      };
+    }
+
+    // 4. Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {
-          price_data: {
-            currency: currency.toLowerCase(),
-            product_data: {
-              name: title,
-            },
-            unit_amount: Math.round(amount * 100), // Cents / Paisa
-          },
+          price_data: lineItemPriceData,
           quantity: 1,
         },
       ],
-      mode: "payment",
-      client_reference_id: paymentId.toString(),
+      mode: mode,
+      client_reference_id: paymentId ? paymentId.toString() : undefined,
       customer_email: userEmail,
-success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-cancel_url: `${process.env.CLIENT_URL}/payment/cancel`,
+      // Pass purpose and paymentId cleanly to frontend success page
+      success_url: `${process.env.CLIENT_URL}/payment/success?type=${purpose}&payment_id=${paymentId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}/payment/cancel?payment_id=${paymentId}`,
       metadata: {
-        paymentId: paymentId.toString(),
+        paymentId: paymentId ? paymentId.toString() : "",
+        purpose: purpose,
       },
     });
 

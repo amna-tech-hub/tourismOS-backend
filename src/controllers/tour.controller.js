@@ -34,7 +34,6 @@ const getCompanyForUser = async (user) => {
 };
 
 // Create Tour
-// Create Tour
 const createTour = async (req, res) => {
   try {
     const {
@@ -224,46 +223,114 @@ const getAllTours = async (req, res) => {
     });
   }
 };
+
 // Get Public Tours (For end-users / frontend showcase)
 const getPublicTours = async (req, res) => {
   try {
-    const baseQuery = Tour.find({
+    const {
+      platform,
+      companyId,
+    } = req.query;
+
+    // ==========================================
+    // BASE FILTER
+    // ==========================================
+
+    const filter = {
       isDeleted: false,
       status: "published",
-    }).populate("company", "companyName logo email phone address");
+    };
 
-    const totalDocuments = await Tour.countDocuments({
-      isDeleted: false,
-      status: "published",
-    });
+    // ==========================================
+    // PLATFORM / COMPANY TYPE
+    // ==========================================
 
-    const features = new ApiFeatures(baseQuery, req.query)
-      .search()
-      .filter()
+    if (platform === "platform") {
+      // Tours created directly by TourismOS
+      filter.company = null;
+    }
+
+    if (platform === "company") {
+      // Tours created by travel companies
+      filter.company = { $ne: null };
+    }
+
+    // ==========================================
+    // SPECIFIC COMPANY FILTER
+    // ==========================================
+
+    if (companyId) {
+      filter.company = companyId;
+    }
+
+    // ==========================================
+    // BASE QUERY
+    // ==========================================
+
+    const baseQuery = Tour.find(filter).populate(
+      "company",
+      "companyName logo email phone address"
+    );
+
+    // ==========================================
+    // TOTAL DOCUMENTS
+    // ==========================================
+
+    const totalDocuments = await Tour.countDocuments(
+      filter
+    );
+
+    // ==========================================
+    // API FEATURES
+    // ==========================================
+
+    const features = new ApiFeatures(
+      baseQuery,
+      req.query
+    )
+      .search([
+        "title",
+        "description",
+        "from",
+        "to",
+      ])
+      .filter([
+        "platform",
+        "companyId",
+      ])
       .sort()
       .limitFields()
       .paginate();
 
+    // ==========================================
+    // EXECUTE QUERY
+    // ==========================================
+
     const tours = await features.query;
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
 
     return successResponse(res, {
       statusCode: 200,
       message: "Public tours retrieved successfully.",
       data: tours,
-      meta: { totalDocuments },
+      meta: {
+        totalDocuments,
+      },
     });
   } catch (error) {
     console.error("Get Public Tours Error:", error);
+
     return errorResponse(res, {
       statusCode: 500,
       message: "Internal Server Error",
     });
   }
 };
-
 // Get Single Tour by ID
 const getTourById = async (req, res) => {
-  console.log("came inside gettourby id");
   
   try {
     let filter = { _id: req.params.id, isDeleted: { $ne: true } };
@@ -271,7 +338,6 @@ const getTourById = async (req, res) => {
     // Restrict non-super_admin users to their company's tours
     if (req.user.role !== "super_admin") {
       const company = await getCompanyForUser(req.user);
-      console.log(company," using the id from here");
       
       if (!company) {
         return errorResponse(res, {
@@ -492,7 +558,6 @@ const deleteTour = async (req, res) => {
 const getTourDetails = async (req, res) => {
   try {
     const { id } = req.body;
-    console.log("came inside tour-detail", id);
 
     // 1. Fetch tour from MongoDB
     const tour = await Tour.findOne({ _id: id, isDeleted: { $ne: true } })

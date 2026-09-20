@@ -1,12 +1,68 @@
-const express = require('express');
+const express = require("express");
+
 const router = express.Router();
-const notificationController = require('../controllers/notification.controller');
-const isAuth = require('../middleware/authorization.middleware'); // Your JWT auth middleware
 
-// Endpoint for frontend dev to register device token
-router.post('/save-token', isAuth, notificationController.saveFcmToken);
+const notificationController =
+  require("../controllers/notification.controller");
 
-// Endpoint for testing or admin manual push
-router.post('/send-user', isAuth, notificationController.sendPushToUser);
-router.delete('/fcm-token', isAuth, notificationController.removeFcmToken);
+const isAuth =
+  require("../middleware/authorization.middleware");
+
+
+// ==========================================
+// FCM TOKEN
+// ==========================================
+
+router.post(
+  "/save-token",
+  isAuth,
+  notificationController.saveFcmToken
+);
+
+router.delete(
+  "/fcm-token",
+  isAuth,
+  notificationController.removeFcmToken
+);
+
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+router.get(
+  "/",
+  isAuth,
+  notificationController.getMyNotifications
+);
+
+router.get(
+  "/unread-count",
+  isAuth,
+  notificationController.getUnreadNotificationCount
+);
+
+router.patch(
+  "/:notificationId/read",
+  isAuth,
+  notificationController.markAsRead
+);
+
+router.patch(
+  "/read-all",
+  isAuth,
+  notificationController.markAllAsRead
+);
+
+
+// ==========================================
+// TEST
+// ==========================================
+
+router.post(
+  "/send-user",
+  isAuth,
+  notificationController.sendPushToUser
+);
+
 module.exports = router;

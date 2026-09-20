@@ -47,7 +47,6 @@ const startGeocodingJob = () => {
 
         if (isUpdated) {
           await tour.save();
-          console.log(`[Geocode Job] Batch updated Tour ID: ${tour._id}`);
         }
       }
     } catch (error) {

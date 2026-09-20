@@ -12,8 +12,20 @@ const notificationSchema = new mongoose.Schema(
     body: { type: String, required: true },
     type: {
       type: String,
-      enum: ["SAFETY_ALERT", "BOOKING_UPDATE", "GENERAL"],
-      default: "SAFETY_ALERT",
+enum: [
+  "SAFETY_ALERT",
+
+        "BOOKING_CREATED",
+        "BOOKING_UPDATE",
+
+        "PAYMENT_SUCCESS",
+        "PAYMENT_FAILED",
+
+        "SUBSCRIPTION_UPDATE",
+
+        "GENERAL",
+],
+     default: "GENERAL",
     },
     data: { type: Object, default: {} },
     isRead: { type: Boolean, default: false },

@@ -66,7 +66,6 @@ const generateCoverImage = async (req, res) => {
 
     // 3. GENERATE IMAGE VIA IMAGE MANAGER (Pollinations -> Flux -> Gemini Image)
     const aiResult = await imageManager.generateImage(enhancedPrompt);
-    console.log(aiResult, " aiResult from image-controller");
 
     if (!aiResult.success || !aiResult.buffer) {
       return errorResponse(res, {
@@ -74,14 +73,12 @@ const generateCoverImage = async (req, res) => {
         message: aiResult.error?.message || "Failed to generate AI image.",
       });
     }
-    console.log(aiResult.buffer?.length, "buffer length of aiResult");
 
     // 4. UPLOAD BUFFER DIRECTLY TO CLOUDINARY
     const cloudinaryResult = await cloudinaryService.uploadBuffer(
       aiResult.buffer,
       "TourismOS/CoverImages"
     );
-    console.log(cloudinaryResult, "cloudinary result");
 
     // 5. DEDUCT AI CREDITS & WRITE AUDIT LEDGER
     let remainingCredits = null;
@@ -110,7 +107,6 @@ const generateCoverImage = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("AI Image Generation Error:", error);
     return errorResponse(res, {
       statusCode: 500,
       message: error.message || "An unexpected error occurred during image generation.",

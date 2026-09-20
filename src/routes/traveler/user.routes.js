@@ -9,11 +9,11 @@ const restrictTo = require("../../middleware/role.middleware");
 // User Profile Routes (Authenticated User)
 router.get("/me", isAuth, userController.userProfile);
 router.patch("/me", isAuth, userController.updateProfile);
+router.get("/:id/stats", isAuth, userController.getUserStats); 
 
 // Admin User Management Routes (Super Admin Only)
 router.get("/", isAuth, restrictTo("super_admin"), userController.getAllUsers);
 router.get("/roles", isAuth, restrictTo("super_admin"), userController.getRoles); 
-router.get("/:id/stats", isAuth, restrictTo("super_admin"), userController.getUserStats); 
 router.get("/:id", isAuth, restrictTo("super_admin"), userController.getUserById);
 router.patch("/:id/role", isAuth, restrictTo("super_admin"), userController.updateUserRole); 
 router.patch("/:id/verify-email", isAuth, restrictTo("super_admin"), userController.toggleEmailVerification); // New

@@ -1,12 +1,13 @@
-// src/models/User.model.js
-
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const baseFields = require("./base/base.schema");
 
 const UserSchema = new mongoose.Schema(
   {
-    // Personal Information
+    // =====================================================
+    // PERSONAL INFORMATION
+    // =====================================================
+
     name: {
       type: String,
       required: [true, "Name is required"],
@@ -14,6 +15,7 @@ const UserSchema = new mongoose.Schema(
       minlength: [2, "Name must be at least 2 characters"],
       maxlength: [50, "Name cannot exceed 50 characters"],
     },
+
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -23,27 +25,54 @@ const UserSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
       index: true,
     },
+
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // Don't return password by default
+      select: false,
     },
+
     phone: {
       type: String,
       trim: true,
-       required: [true, "Phone number is required"],
+      required: [true, "Phone number is required"],
       match: [
         /^(\+92|0)?3[0-9]{9}$/,
         "Please enter a valid Pakistani phone number",
       ],
     },
-    profilePicture: {
-        url: { type: String, default: null },
-        public_id: { type: String, default: null },
-      },
 
-    // User Settings
+    // =====================================================
+    // PROFILE PICTURE
+    // =====================================================
+
+    profilePicture: {
+      url: {
+        type: String,
+        default: null,
+      },
+      public_id: {
+        type: String,
+        default: null,
+      },
+    },
+
+    // =====================================================
+    // BIO
+    // =====================================================
+
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Bio cannot exceed 500 characters"],
+      default: "",
+    },
+
+    // =====================================================
+    // USER SETTINGS
+    // =====================================================
+
     role: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Role",
@@ -55,27 +84,52 @@ const UserSchema = new mongoose.Schema(
       enum: ["male", "female", "other", "prefer_not_to_say"],
       default: "prefer_not_to_say",
     },
+
     fcmTokens: [
-    { type: String }
-  ],
-    // Verification
+      {
+        type: String,
+         default: [],
+      },
+    ],
+
+    // =====================================================
+    // VERIFICATION
+    // =====================================================
+
     emailVerified: {
       type: Boolean,
       default: false,
     },
 
-    // Base Schema (Audit Fields)
-     ...baseFields,
+    // =====================================================
+    // BASE SCHEMA
+    // =====================================================
+
+    ...baseFields,
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  },
+    toJSON: {
+      virtuals: true,
+    },
+    toObject: {
+      virtuals: true,
+    },
+  }
 );
 
-// Indexes
-UserSchema.index({ email: 1, status: 1 });
+// =====================================================
+// INDEXES
+// =====================================================
+
+UserSchema.index({
+  email: 1,
+  status: 1,
+});
+
+// =====================================================
+// MODEL
+// =====================================================
 
 const User = mongoose.model("User", UserSchema);
 

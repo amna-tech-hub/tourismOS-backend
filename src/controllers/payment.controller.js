@@ -4,12 +4,13 @@ const paymentProcessor = require("../services/payment/payment.processor");
 const jazzCashService = require("../services/payment/jazzcash.service");
 const Payment = require("../models/Payment.model");
 const mongoose = require("mongoose");
-
+const notificationService = require("../services/notification/notification.service");
 /**
  * @desc Handle incoming webhooks (Stripe / Standard Webhooks)
  * @route POST /api/payments/webhook
  * @access Public
  */
+// ✅ Fixed version
 exports.handleWebhook = async (req, res) => {
   const provider = req.query.provider || process.env.PAYMENT_PROVIDER || "stripe";
   const signature = req.headers["stripe-signature"];
@@ -18,20 +19,22 @@ exports.handleWebhook = async (req, res) => {
     let event;
 
     if (provider === "stripe") {
-      event = paymentManager.verifyWebhook(req.body, signature, "stripe");
+      event = await paymentManager.verifyWebhook(req.body, signature, "stripe"); // Added await
     } else {
-      event = paymentManager.verifyWebhook(req.body, req.headers, provider);
+      event = await paymentManager.verifyWebhook(req.body, req.headers, provider); // Added await
     }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-      const paymentId = session.metadata.paymentId;
+      const paymentId = session.metadata?.paymentId; // Added optional chaining for safety
 
-      await paymentProcessor.processSuccessfulPayment({
-        paymentId,
-        transactionId: session.payment_intent || session.id,
-        gatewayResponse: session,
-      });
+      if (paymentId) {
+        await paymentProcessor.processSuccessfulPayment({
+          paymentId,
+          transactionId: session.payment_intent || session.id,
+          gatewayResponse: session,
+        });
+      }
     }
 
     return res.status(200).json({ received: true });
@@ -168,15 +171,14 @@ if (isSuccess) {
 
       let paymentDoc = validPaymentId ? await Payment.findById(validPaymentId) : null;
 
-      if (paymentDoc) {
-        paymentDoc.status = "paid";
-        paymentDoc.transactionId = jazzCashData.pp_TxnRefNo;
-        paymentDoc.gatewayResponse = jazzCashData;
-        paymentDoc.paidAt = new Date();
-        paymentDoc.ipAddress = clientIp;
-        paymentDoc.userAgent = userAgent;
-        await paymentDoc.save();
-      } else {
+     if (paymentDoc) {
+  paymentDoc.transactionId = jazzCashData.pp_TxnRefNo;
+  paymentDoc.gatewayResponse = jazzCashData;
+  paymentDoc.ipAddress = clientIp;
+  paymentDoc.userAgent = userAgent;
+
+  await paymentDoc.save();
+} else {
         paymentDoc = await Payment.create({
           provider: "jazzcash",
           purpose: "booking",
@@ -200,19 +202,52 @@ if (isSuccess) {
 
       return res.redirect(`${process.env.CLIENT_URL}/payment/success`);
     } else {
-      // Payment Failed
-      if (mongoose.Types.ObjectId.isValid(paymentId)) {
-        await Payment.findByIdAndUpdate(paymentId, {
-          status: "failed",
-          fraudReason: jazzCashData.pp_ResponseMessage || "GATEWAY_DECLINED",
-          gatewayResponse: jazzCashData,
-          ipAddress: clientIp,
-          userAgent,
-        });
-      }
+  // ============================================
+  // PAYMENT FAILED
+  // ============================================
 
-      return res.redirect(`${process.env.CLIENT_URL}/payment/cancel`);
+  if (mongoose.Types.ObjectId.isValid(paymentId)) {
+    const paymentDoc = await Payment.findByIdAndUpdate(
+      paymentId,
+      {
+        status: "failed",
+        fraudReason:
+          jazzCashData.pp_ResponseMessage ||
+          "GATEWAY_DECLINED",
+        gatewayResponse: jazzCashData,
+        ipAddress: clientIp,
+        userAgent,
+      },
+      { new: true }
+    );
+
+    // ============================================
+    // SEND PAYMENT FAILED NOTIFICATION
+    // ============================================
+
+    if (paymentDoc?.payer) {
+      await notificationService.sendToUser(
+        paymentDoc.payer,
+        {
+          title: "Payment Failed ❌",
+          body:
+            "Your payment could not be completed. Please try again.",
+          type: "PAYMENT_FAILED",
+
+          extraData: {
+            paymentId: paymentDoc._id.toString(),
+            purpose: paymentDoc.purpose,
+            screen: "payments",
+          },
+        }
+      );
     }
+  }
+
+  return res.redirect(
+    `${process.env.CLIENT_URL}/payment/cancel`
+  );
+}
   } catch (error) {
     console.error(" CRITICAL CALLBACK ERROR:", error);
 
@@ -229,5 +264,55 @@ if (isSuccess) {
     });
 
     return res.status(500).json({ success: false, message: "Callback processing failed" });
+  }
+};
+
+/**
+ * @desc Verify Stripe Session / Payment status for Frontend Success Page
+ * @route GET /api/payments/verify-session
+ * @access Public
+ */
+/**
+ * @desc Verify Stripe Session / Payment status for Frontend Success Page
+ * @route GET /api/payments/verify-session
+ * @access Public
+ */
+exports.verifySession = async (req, res) => {
+  try {
+    const { session_id, payment_id, type } = req.query;
+
+    let paymentDoc = null;
+    if (mongoose.Types.ObjectId.isValid(payment_id)) {
+      paymentDoc = await Payment.findById(payment_id).populate("payer", "email");
+    }
+
+    if (!paymentDoc) {
+      return res.status(404).json({ success: false, message: "Payment record not found" });
+    }
+
+    // Always prioritize the DB payment record's purpose
+    const resolvedType = paymentDoc.purpose || type || "booking";
+
+    // Delegate summary generation to paymentProcessor
+    const summaryData = await paymentProcessor.getPaymentSummary({
+      paymentDoc,
+      type: resolvedType,
+      sessionId: session_id,
+    });
+
+    // Ensure customer email is passed back
+    if (!summaryData.customerEmail && paymentDoc.payer?.email) {
+      summaryData.customerEmail = paymentDoc.payer.email;
+    }
+
+    return res.status(200).json({
+      success: true,
+      status: paymentDoc.status,
+      type: resolvedType, // Returns "subscription" or "booking"
+      data: summaryData,
+    });
+  } catch (error) {
+    console.error("Verify Session Error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to verify session" });
   }
 };

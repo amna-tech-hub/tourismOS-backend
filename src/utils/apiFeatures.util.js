@@ -31,7 +31,7 @@ class ApiFeatures {
   // FILTER
   // ==========================================
 
-  filter() {
+  filter(additionalExcludedFields = []) {
     const queryObj = { ...this.queryString };
 
     const excludedFields = [
@@ -41,7 +41,12 @@ class ApiFeatures {
       "fields",
       "search",
       "order",
-        "companyId",
+
+      // Special filters handled manually by controllers
+      "companyId",
+
+      // Additional controller-specific filters
+      ...additionalExcludedFields,
     ];
 
     excludedFields.forEach((field) => {
@@ -65,8 +70,50 @@ class ApiFeatures {
   // ==========================================
 
   sort() {
-    const sortField =
-      this.queryString.sort || "createdAt";
+    const sortField = this.queryString.sort;
+
+    // ==========================================
+    // CUSTOM SORT OPTIONS
+    // ==========================================
+
+    if (sortField === "newest") {
+      this.query = this.query.sort({
+        createdAt: -1,
+      });
+
+      return this;
+    }
+
+    if (sortField === "popular") {
+      this.query = this.query.sort({
+        ratingsAverage: -1,
+        ratingsQuantity: -1,
+      });
+
+      return this;
+    }
+
+    if (sortField === "price-low") {
+      this.query = this.query.sort({
+        price: 1,
+      });
+
+      return this;
+    }
+
+    if (sortField === "price-high") {
+      this.query = this.query.sort({
+        price: -1,
+      });
+
+      return this;
+    }
+
+    // ==========================================
+    // EXISTING SORT BEHAVIOR
+    // ==========================================
+
+    const field = sortField || "createdAt";
 
     const order =
       this.queryString.order === "asc"
@@ -74,7 +121,7 @@ class ApiFeatures {
         : -1;
 
     this.query = this.query.sort({
-      [sortField]: order,
+      [field]: order,
     });
 
     return this;
@@ -86,15 +133,13 @@ class ApiFeatures {
 
   limitFields() {
     if (this.queryString.fields) {
-      const fields =
-        this.queryString.fields
-          .split(",")
-          .join(" ");
+      const fields = this.queryString.fields
+        .split(",")
+        .join(" ");
 
       this.query = this.query.select(fields);
     } else {
-      this.query =
-        this.query.select("-__v");
+      this.query = this.query.select("-__v");
     }
 
     return this;
@@ -105,13 +150,11 @@ class ApiFeatures {
   // ==========================================
 
   paginate() {
-    const { skip, limit } =
-      paginate(this.queryString);
+    const { skip, limit } = paginate(this.queryString);
 
-    this.query =
-      this.query
-        .skip(skip)
-        .limit(limit);
+    this.query = this.query
+      .skip(skip)
+      .limit(limit);
 
     return this;
   }

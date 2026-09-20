@@ -77,7 +77,6 @@ const travelJournalSchema = new mongoose.Schema(
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
-      required: [true, "Company ID is required"],
     },
     tour: {
       type: mongoose.Schema.Types.ObjectId,
@@ -85,10 +84,7 @@ const travelJournalSchema = new mongoose.Schema(
       required: [true, "Tour ID is required"],
     },
     entries: [journalEntrySchema],
-    isPublic: {
-      type: Boolean,
-      default: false,
-    },
+ 
     isDeleted: {
       type: Boolean,
       default: false,
@@ -101,8 +97,6 @@ const travelJournalSchema = new mongoose.Schema(
 
 // Indexes for query performance
 travelJournalSchema.index({ traveler: 1, isDeleted: 1 });
-// travelJournalSchema.index({ booking: 1 });
-travelJournalSchema.index({ tour: 1, isPublic: 1 });
 
 const TravelJournal = mongoose.model("TravelJournal", travelJournalSchema);
 

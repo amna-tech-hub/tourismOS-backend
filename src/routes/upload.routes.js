@@ -20,5 +20,11 @@ router.post(
   upload.array("images", 5), // Expects field name "images", max 5 files
   uploadController.uploadMultipleImages
 );
+// Delete a single image from Cloudinary
+router.delete(
+  "/image",
+  isAuth,
+  uploadController.deleteImage
+);
 
 module.exports = router;

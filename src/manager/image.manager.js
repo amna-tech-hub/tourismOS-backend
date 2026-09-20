@@ -10,21 +10,7 @@ class ImageManager {
       pollinationsService,
     ];
 
-    // Debug provider exports
-    console.log("\n========== IMAGE PROVIDERS ==========");
-
-    this.providers.forEach((provider, index) => {
-      console.log(`Provider ${index + 1}:`);
-      console.log("provider:", provider);
-      console.log("name:", provider?.provider);
-      console.log(
-        "generateImage:",
-        typeof provider?.generateImage
-      );
-      console.log("====================================");
-    });
   }
-
   async generateImage(prompt) {
     let lastError = null;
 
@@ -32,17 +18,14 @@ class ImageManager {
       const providerName =
         provider?.provider || "Unknown Provider";
 
-      console.log(
-        `\n🖼️ Trying image provider: ${providerName}`
-      );
-
+   
       // Don't crash if export is wrong
       if (
         !provider ||
         typeof provider.generateImage !== "function"
       ) {
         console.error(
-          `❌ ${providerName} does not implement generateImage()`
+          ` ${providerName} does not implement generateImage()`
         );
 
         lastError = {
@@ -60,7 +43,7 @@ class ImageManager {
 
         if (result?.success) {
           console.log(
-            `✅ Success from ${providerName}`
+            ` Success from ${providerName}`
           );
 
           return result;

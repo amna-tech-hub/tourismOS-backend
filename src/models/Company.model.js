@@ -36,9 +36,14 @@ const companySchema = new mongoose.Schema(
     match: [/^\+?[0-9]{10,15}$/, "Please provide a valid phone number"],
 },
         logo: {
-            type: String, // URL or image path
-           default: null,
-        },
+  url: {
+    type: String,
+    default: null,
+  },
+  public_id: {
+    type: String,
+    default: null,
+  },},
         description: {
             type: String,
             trim: true,

@@ -1,30 +1,65 @@
 const express = require("express");
+
 const router = express.Router();
+
 const travelJournalController = require("../controllers/travelJournal.controller");
-const isAuth = require("../middleware/authorization.middleware"); 
-const restrictTo = require("../middleware/role.middleware"); 
-router.use(isAuth);
+const { restrictTo } = require("../middleware/role.middleware");
+const protect =require("../middleware/authorization.middleware")
+// ============================================================
+// JOURNALS
+// ============================================================
 
-router
-  .route("/")
-  .post(restrictTo("traveler"), travelJournalController.createJournal);
+// Create journal
+router.post(
+  "/",
+  protect,
+  travelJournalController.createJournal
+);
 
-router
-  .route("/")
-  .get(restrictTo("traveler"), travelJournalController.getMyJournals);
+// Get my journals
+router.get(
+  "/",
+  protect,
+  travelJournalController.getMyJournals
+);
 
-router
-  .route("/:id")
-  .get(travelJournalController.getJournalById)
-  .patch(restrictTo("traveler"), travelJournalController.updateJournal)
-  .delete(restrictTo("traveler"), travelJournalController.deleteJournal);
+// Get journal detail
+router.get(
+  "/:id",
+  protect,
+  travelJournalController.getJournalById
+);
 
-router
-  .route("/:id/entries")
-  .post(restrictTo("traveler"), travelJournalController.addEntry);
+// Delete journal
+router.delete(
+  "/:id",
+  protect,
+  travelJournalController.deleteJournal
+);
 
-router
-  .route("/:id/entries/:entryId")
-  .delete(restrictTo("traveler"), travelJournalController.deleteEntry);
+// ============================================================
+// JOURNAL ENTRIES
+// ============================================================
+
+// Add entry
+router.post(
+  "/:id/entries",
+  protect,
+  travelJournalController.addEntry
+);
+
+// Update entry
+router.patch(
+  "/:id/entries/:entryId",
+  protect,
+  travelJournalController.updateEntry
+);
+
+// Delete entry
+router.delete(
+  "/:id/entries/:entryId",
+  protect,
+  travelJournalController.deleteEntry
+);
 
 module.exports = router;

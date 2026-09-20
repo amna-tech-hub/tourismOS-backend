@@ -12,12 +12,18 @@ const invitationSchema = new mongoose.Schema(
       ref: "User",
      
     },
+      phone: {
+    type: String,
+    trim: true,
+    match: [/^\+?[0-9]{10,15}$/, "Please provide a valid phone number"],
+},
     email: {
       type: String,
       required: true,
       lowercase: true,
       trim: true,
     },
+
     role: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Role",

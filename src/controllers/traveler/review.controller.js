@@ -60,7 +60,6 @@ exports.deleteReview = async (req, res) => {
     // Read from query if using ?reviewId=... or params if using /:reviewId
     const reviewId = req.query.reviewId || req.params.reviewId;
     const userId = req.user.id;
-console.log(reviewId," id");
 
     if (!reviewId) {
       return res.status(400).json({

@@ -60,7 +60,7 @@ const travelJournalRoutes=require('./routes/travelJournal.routes')
 const subscriptionPlanRoutes=require('./routes/subscriptionPlan.routes')
 const subscriptionCheckoutRoutes=require('./routes/subscription.routes')
 const adminDashboardRoutes=require('./routes/admin-routes/dashboard.routes')
-
+const employeeRoutes = require("./routes/employee/employee.routes");
 
 app.use('/api/admin', adminRoutes);
 
@@ -71,16 +71,17 @@ app.use("/api/users", usersRoutes);
 app.use('/api/company', companyRoutes);
 app.use('/api/company/employees', companyEmployeeRoutes);
 app.use('/api/tours', tourRoutes);
+app.use("/api/employee", employeeRoutes);
+
 app.use("/api/upload", uploadRouter);
 app.use("/api/subscription",subscriptionCheckoutRoutes);
 app.use("/api/plans", subscriptionPlanRoutes);
 app.use("/api", travellerBookingRoutes);
-app.use("/company/bookings", companyBookingRoutes);
+app.use("/api/company/bookings", companyBookingRoutes);
 app.use("/api/notification", notificationRoutes);
 app.use("/api/tour/review", reviewRoutes);
 app.use("/api/travel-journals", travelJournalRoutes);
 app.use("/api/payments", paymentRoutes);
-
 // Health Check 
 app.get('/health', (req, res) => {
     res.json({

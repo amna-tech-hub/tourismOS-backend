@@ -4,7 +4,7 @@ const Role = require("../../models/Role.model");
 const Booking = require("../../models/Booking.model"); // Adjust path as needed
 const Company = require("../../models/Company.model"); // Adjust path as needed
 const Tour = require("../../models/Tour.model");       // Adjust path as needed
-
+const Review =require("../../models/Review.model")
 const ApiFeatures = require("../../utils/apiFeatures.util");
 const { successResponse, errorResponse } = require("../../utils/response.util");
 
@@ -272,16 +272,57 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // 1. Extract fields from req.body
-    const { name, phone, profilePicture } = req.body;
+    const {
+      name,
+      phone,
+      gender,
+      bio,
+      profilePicture,
+    } = req.body;
 
-    // 2. Build the update object
+    // =====================================================
+    // BUILD UPDATE OBJECT
+    // =====================================================
+
     const updates = {};
-    if (name !== undefined) updates.name = name;
-    if (phone !== undefined) updates.phone = phone;
-    
-    // ADD THIS LINE:
-    if (profilePicture !== undefined) updates.profilePicture = profilePicture;
+
+    if (name !== undefined) {
+      updates.name = name;
+    }
+
+    if (phone !== undefined) {
+      updates.phone = phone;
+    }
+
+    if (gender !== undefined) {
+      updates.gender = gender;
+    }
+
+    if (bio !== undefined) {
+      updates.bio = bio;
+    }
+
+    // =====================================================
+    // PROFILE PICTURE
+    // =====================================================
+
+    if (profilePicture !== undefined) {
+      if (profilePicture === null) {
+        updates.profilePicture = {
+          url: null,
+          public_id: null,
+        };
+      } else if (typeof profilePicture === "object") {
+        updates.profilePicture = {
+          url: profilePicture.url || null,
+          public_id: profilePicture.public_id || null,
+        };
+      }
+    }
+
+    // =====================================================
+    // VALIDATE EMPTY UPDATE
+    // =====================================================
 
     if (Object.keys(updates).length === 0) {
       return errorResponse(res, {
@@ -290,11 +331,17 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // 3. Update in MongoDB
+    // =====================================================
+    // UPDATE USER
+    // =====================================================
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updates },
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true,
+      }
     )
       .select("-password")
       .populate("role", "name");
@@ -309,27 +356,27 @@ const updateProfile = async (req, res) => {
     return successResponse(res, {
       statusCode: 200,
       message: "Profile updated successfully.",
-      data: { user: updatedUser },
+      data: {
+        user: updatedUser,
+      },
     });
   } catch (error) {
     console.error("Update Profile Error:", error);
+
     return errorResponse(res, {
       statusCode: 500,
       message: error.message || "Internal Server Error",
     });
   }
 };
-
-/**
- * @desc    Get Detailed User Statistics (Role-Aware)
- * @route   GET /api/v1/users/:id/stats
- * @access  Private (Super Admin)
- */
 const getUserStats = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. Fetch User with Populated Role
+    // =====================================================
+    // 1. FETCH USER
+    // =====================================================
+
     const user = await User.findById(id).populate(
       "role",
       "name displayName description"
@@ -344,7 +391,10 @@ const getUserStats = async (req, res) => {
 
     const roleName = user.role?.name?.toLowerCase() || "user";
 
-    // Standardized user profile overview matching your User model fields
+    // =====================================================
+    // 2. BASE USER PROFILE
+    // =====================================================
+
     const responseData = {
       user: {
         id: user._id,
@@ -352,35 +402,71 @@ const getUserStats = async (req, res) => {
         email: user.email,
         phone: user.phone || null,
         gender: user.gender,
-        profilePicture: user.profilePicture?.url || null,
+
+        profilePicture: {
+          url: user.profilePicture?.url || null,
+          public_id: user.profilePicture?.public_id || null,
+        },
+
         emailVerified: user.emailVerified,
         isDeleted: user.isDeleted || false,
         deletedAt: user.deletedAt || null,
+
         role: {
           id: user.role?._id,
           name: user.role?.name,
-          displayName: user.role?.displayName || roleName,
+          displayName:
+            user.role?.displayName || roleName,
           description: user.role?.description,
         },
+
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
+
       metrics: {},
     };
 
-    // 2. Role-Specific Aggregations
-    if (roleName === "user") {
-      // --- TRAVELER / REGULAR USER METRICS ---
-      const [bookingCounts, spending] = await Promise.all([
+    // =====================================================
+    // 3. TRAVELER METRICS
+    // =====================================================
+
+    if (
+      roleName === "traveler" ||
+      roleName === "user"
+    ) {
+      const [
+        bookingCounts,
+        spending,
+        reviewStats,
+        completedBookings,
+      ] = await Promise.all([
+
+        // =================================================
+        // BOOKING COUNTS
+        // =================================================
+
         Booking.aggregate([
-          { $match: { traveler: user._id, isDeleted: { $ne: true } } },
+          {
+            $match: {
+              traveler: user._id,
+              isDeleted: { $ne: true },
+            },
+          },
           {
             $group: {
               _id: "$status",
-              count: { $sum: 1 },
+              count: {
+                $sum: 1,
+              },
             },
           },
         ]),
+
+        // =================================================
+        // TOTAL SPENT
+        // =================================================
+
         Booking.aggregate([
           {
             $match: {
@@ -392,47 +478,213 @@ const getUserStats = async (req, res) => {
           {
             $group: {
               _id: null,
-              totalSpent: { $sum: "$totalAmount" },
+              totalSpent: {
+                $sum: "$totalAmount",
+              },
             },
           },
         ]),
+
+        // =================================================
+        // REVIEW STATISTICS
+        // =================================================
+
+        Review.aggregate([
+          {
+            $match: {
+              user: user._id,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+
+              totalReviews: {
+                $sum: 1,
+              },
+
+              averageRating: {
+                $avg: "$rating",
+              },
+            },
+          },
+        ]),
+
+        // =================================================
+        // COMPLETED BOOKINGS
+        // Used to calculate destinations visited
+        // =================================================
+
+        Booking.find({
+          traveler: user._id,
+          status: "completed",
+          isDeleted: { $ne: true },
+        })
+          .populate("tour", "from to")
+          .select("tour"),
       ]);
 
-      const bookingMap = bookingCounts.reduce((acc, curr) => {
-        acc[curr._id] = curr.count;
-        return acc;
-      }, {});
+      // =====================================================
+      // BOOKING MAP
+      // =====================================================
 
-      const totalBookings = bookingCounts.reduce((sum, curr) => sum + curr.count, 0);
+      const bookingMap = bookingCounts.reduce(
+        (acc, curr) => {
+          acc[curr._id] = curr.count;
+          return acc;
+        },
+        {}
+      );
+
+      // =====================================================
+      // TOTAL BOOKINGS
+      // =====================================================
+
+      const totalBookings = bookingCounts.reduce(
+        (sum, curr) => sum + curr.count,
+        0
+      );
+
+      // =====================================================
+      // DESTINATIONS VISITED
+      // =====================================================
+
+      const destinations = new Set();
+
+      completedBookings.forEach((booking) => {
+        const tour = booking.tour;
+
+        if (!tour) {
+          return;
+        }
+
+        if (tour.from) {
+          destinations.add(
+            tour.from.trim().toLowerCase()
+          );
+        }
+
+        if (tour.to) {
+          destinations.add(
+            tour.to.trim().toLowerCase()
+          );
+        }
+      });
+
+      // =====================================================
+      // REVIEW DATA
+      // =====================================================
+
+      const totalReviews =
+        reviewStats[0]?.totalReviews || 0;
+
+      const averageRating =
+        reviewStats[0]?.averageRating
+          ? Number(
+              reviewStats[0].averageRating.toFixed(1)
+            )
+          : 0;
+
+      // =====================================================
+      // TRAVELER METRICS RESPONSE
+      // =====================================================
 
       responseData.metrics = {
         roleType: "traveler",
+
+        // -----------------------------
+        // BOOKINGS
+        // -----------------------------
+
         totalBookings,
-        pendingBookings: bookingMap.pending || 0,
-        confirmedBookings: bookingMap.confirmed || 0,
-        completedBookings: bookingMap.completed || 0,
-        cancelledBookings: bookingMap.cancelled || 0,
-        totalSpent: spending[0]?.totalSpent || 0,
+
+        pendingBookings:
+          bookingMap.pending || 0,
+
+        confirmedBookings:
+          bookingMap.confirmed || 0,
+
+        completedBookings:
+          bookingMap.completed || 0,
+
+        cancelledBookings:
+          bookingMap.cancelled || 0,
+
+        // -----------------------------
+        // SPENDING
+        // -----------------------------
+
+        totalSpent:
+          spending[0]?.totalSpent || 0,
+
+        // -----------------------------
+        // REVIEWS
+        // -----------------------------
+
+        totalReviews,
+
+        averageRating,
+
+        // -----------------------------
+        // TRAVEL
+        // -----------------------------
+
+        destinationsVisited:
+          destinations.size,
       };
+
+    // =====================================================
+    // 4. COMPANY ADMIN METRICS
+    // =====================================================
+
     } else if (roleName === "company_admin") {
-      // --- COMPANY ADMIN METRICS ---
+
       const company = await Company.findOne({
         owner: user._id,
         isDeleted: { $ne: true },
       });
 
       if (company) {
-        const [totalTours, bookingStats] = await Promise.all([
-          Tour.countDocuments({ company: company._id, isDeleted: { $ne: true } }),
+
+        const [
+          totalTours,
+          bookingStats,
+        ] = await Promise.all([
+
+          // TOTAL TOURS
+          Tour.countDocuments({
+            company: company._id,
+            isDeleted: { $ne: true },
+          }),
+
+          // BOOKINGS + REVENUE
           Booking.aggregate([
-            { $match: { company: company._id, isDeleted: { $ne: true } } },
+            {
+              $match: {
+                company: company._id,
+                isDeleted: { $ne: true },
+              },
+            },
             {
               $group: {
                 _id: null,
-                totalBookings: { $sum: 1 },
+
+                totalBookings: {
+                  $sum: 1,
+                },
+
                 revenue: {
                   $sum: {
-                    $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$totalAmount", 0],
+                    $cond: [
+                      {
+                        $eq: [
+                          "$paymentStatus",
+                          "paid",
+                        ],
+                      },
+                      "$totalAmount",
+                      0,
+                    ],
                   },
                 },
               },
@@ -442,56 +694,92 @@ const getUserStats = async (req, res) => {
 
         responseData.metrics = {
           roleType: "company_admin",
+
           hasCompany: true,
+
           companyId: company._id,
+
           companyName: company.companyName,
+
           companyStatus: company.status,
-          verificationStatus: company.verificationStatus,
+
+          verificationStatus:
+            company.verificationStatus,
+
           totalTours,
-          totalBookings: bookingStats[0]?.totalBookings || 0,
-          totalRevenue: bookingStats[0]?.revenue || 0,
+
+          totalBookings:
+            bookingStats[0]?.totalBookings || 0,
+
+          totalRevenue:
+            bookingStats[0]?.revenue || 0,
         };
+
       } else {
+
         responseData.metrics = {
           roleType: "company_admin",
+
           hasCompany: false,
         };
       }
+
+    // =====================================================
+    // 5. EMPLOYEE METRICS
+    // =====================================================
+
     } else if (roleName === "employee") {
-      // --- EMPLOYEE METRICS ---
+
       responseData.metrics = {
         roleType: "employee",
+
         assignedTours: 0,
+
         managedBookings: 0,
       };
+
+    // =====================================================
+    // 6. SUPER ADMIN METRICS
+    // =====================================================
+
     } else if (roleName === "super_admin") {
-      // --- SUPER ADMIN METRICS ---
+
       responseData.metrics = {
         roleType: "super_admin",
+
         accessLevel: "Full Access",
       };
     }
 
+    // =====================================================
+    // 7. RESPONSE
+    // =====================================================
+
     return successResponse(res, {
       statusCode: 200,
+
       message: "User stats fetched successfully.",
+
       data: responseData,
     });
+
   } catch (error) {
-    console.error("Get User Stats Error:", error);
+
+    console.error(
+      "Get User Stats Error:",
+      error
+    );
+
     return errorResponse(res, {
       statusCode: 500,
-      message: "Internal Server Error",
+
+      message:
+        error.message ||
+        "Internal Server Error",
     });
   }
 };
 
-
-/**
- * @desc    Update User Role
- * @route   PATCH /api/v1/users/:id/role
- * @access  Private (Super Admin)
- */
 const updateUserRole = async (req, res) => {
   try {
     const { id } = req.params;
@@ -523,11 +811,6 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-/**
- * @desc    Toggle Email Verification Status
- * @route   PATCH /api/v1/users/:id/verify-email
- * @access  Private (Super Admin)
- */
 const toggleEmailVerification = async (req, res) => {
   try {
     const { id } = req.params;

@@ -10,6 +10,7 @@ const OTP = require("../models/OTP.model");
 const Company = require("../models/Company.model");
 const Employee = require("../models/Employee.model");
 const Invitation = require("../models/Invitation.model");
+const Review = require("../models/Review.model");
 
 // Services & Utilities
 const mailSender = require("../services/email/mailSender");
@@ -18,7 +19,6 @@ const { successResponse, errorResponse } = require("../utils/response.util");
 
 const register = async (req, res) => {
   try {
-    console.log(" request came ",req);
     
     const { name, email, password, phone, gender } = req.body;
 
@@ -260,7 +260,6 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select("+password").populate("role");
     if (!user) {
-      console.log("inside log");
       
       return errorResponse(res, {
         statusCode: 401,
@@ -431,6 +430,7 @@ const resetPassword = async (req, res) => {
     }
 
     const isOtpValid = await bcrypt.compare(otp, otpRecord.otp);
+    
     if (!isOtpValid) {
       return errorResponse(res, {
         statusCode: 400,
@@ -468,9 +468,9 @@ const resetPassword = async (req, res) => {
     });
   }
 };
-
 const acceptInvite = async (req, res) => {
   try {
+    
     const { token, name, password } = req.body;
 
     if (!token || !name || !password) {
@@ -480,10 +480,18 @@ const acceptInvite = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // 1. HASH INVITATION TOKEN
+    // ==========================================
+
     const hashedToken = crypto
       .createHash("sha256")
       .update(token)
       .digest("hex");
+
+    // ==========================================
+    // 2. FIND VALID INVITATION
+    // ==========================================
 
     const invitation = await Invitation.findOne({
       token: hashedToken,
@@ -498,7 +506,15 @@ const acceptInvite = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email: invitation.email, isDeleted: false });
+    // ==========================================
+    // 3. CHECK EXISTING USER
+    // ==========================================
+
+    const existingUser = await User.findOne({
+      email: invitation.email,
+      isDeleted: false,
+    });
+
     if (existingUser) {
       return errorResponse(res, {
         statusCode: 409,
@@ -506,36 +522,63 @@ const acceptInvite = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // 4. HASH PASSWORD
+    // ==========================================
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    // ==========================================
+    // 5. CREATE USER
+    // ==========================================
 
     const user = await User.create({
       name,
       email: invitation.email,
+      phone:invitation.phone,
       password: hashedPassword,
       role: invitation.role,
       emailVerified: true,
       status: "active",
     });
 
+    // ==========================================
+    // 6. GET ROLE
+    // ==========================================
+
     const role = await Role.findById(invitation.role);
 
-    if (role && role.name === "company_admin") {
+    if (!role) {
+      return errorResponse(res, {
+        statusCode: 500,
+        message: "Invitation role not found.",
+      });
+    }
+
+    // ==========================================
+    // 7. COMPANY ADMIN INVITATION
+    // ==========================================
+
+    if (role.name === "company_admin") {
       await Company.findOneAndUpdate(
         { _id: invitation.company },
         {
           ownerId: user._id,
           verificationStatus: "verified",
-          status:"active"
+          status: "active",
         }
       );
     }
 
-    if (role && role.name === "employee") {
-      console.log("came inside employyy invite");
-      
+    // ==========================================
+    // 8. EMPLOYEE INVITATION
+    // ==========================================
+
+    if (role.name === "employee") {
+
       await Employee.findOneAndUpdate(
-        { _id: invitation.user },  //employee user
+        { _id: invitation.user },
         {
           $set: {
             user: user._id,
@@ -546,30 +589,72 @@ const acceptInvite = async (req, res) => {
       );
     }
 
+    // ==========================================
+    // 9. MARK INVITATION AS ACCEPTED
+    // ==========================================
+
     invitation.isAccepted = true;
     await invitation.save();
 
+    // ==========================================
+    // 10. GENERATE LOGIN TOKEN
+    // ==========================================
+    // This allows the user to directly enter
+    // their dashboard after accepting the invite.
+
+    const jwtToken = jwt.sign(
+      {
+        id: user._id,
+        role: role.name,
+      },
+      process.env.JWT_ACCESS_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    // ==========================================
+    // 11. SET AUTH COOKIE
+    // ==========================================
+
+    const cookieOptions = {
+      expires: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    };
+
+    res.cookie("token", jwtToken, cookieOptions);
+
+    // ==========================================
+    // 12. RETURN USER + ROLE + COMPANY
+    // ==========================================
+
     return successResponse(res, {
       statusCode: 201,
-      message: "Account setup successfully! You can now log in.",
+      message: "Account setup successfully! Welcome to TourismOS.",
       data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: role.name,
+        },
         companyId: invitation.company,
+        role: role.name,
       },
     });
   } catch (error) {
     console.error("Accept Invitation Error:", error);
+
     return errorResponse(res, {
       statusCode: 500,
       message: "Internal Server Error",
     });
   }
 };
-
-
 
 
 module.exports = {
