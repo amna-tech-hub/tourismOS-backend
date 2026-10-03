@@ -1,14 +1,8 @@
-
-
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
 
-// Create logs directory
-const logDir = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
-}
+const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
 
 const levels = {
     error: 0,
@@ -52,25 +46,36 @@ const fileFormat = winston.format.combine(
 const transports = [
     new winston.transports.Console({
         format: format,
-        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-    }),
-    new winston.transports.File({
-        filename: path.join(logDir, 'error.log'),
-        level: 'error',
-        format: fileFormat,
-        maxsize: 5242880,
-        maxFiles: 5,
-    }),
-    new winston.transports.File({
-        filename: path.join(logDir, 'combined.log'),
-        format: fileFormat,
-        maxsize: 5242880,
-        maxFiles: 5,
+        level: isServerless ? 'info' : 'debug',
     }),
 ];
 
+// Only write to local log files in local development (non-serverless)
+if (!isServerless) {
+    const logDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+    }
+
+    transports.push(
+        new winston.transports.File({
+            filename: path.join(logDir, 'error.log'),
+            level: 'error',
+            format: fileFormat,
+            maxsize: 5242880,
+            maxFiles: 5,
+        }),
+        new winston.transports.File({
+            filename: path.join(logDir, 'combined.log'),
+            format: fileFormat,
+            maxsize: 5242880,
+            maxFiles: 5,
+        })
+    );
+}
+
 const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+    level: isServerless ? 'info' : 'debug',
     levels,
     transports,
     exitOnError: false,

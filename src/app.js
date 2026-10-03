@@ -26,8 +26,15 @@ app.use(cors({
 }));
 app.use(compression());
 app.use(requestIdMiddleware);
-app.use(morgan('dev', { stream: logger.stream }));
-app.use(cookieParser());
+const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
+
+app.use(
+  morgan('dev', {
+    stream: isServerless
+      ? { write: (message) => console.log(message.trim()) }
+      : logger.stream,
+  })
+);app.use(cookieParser());
 
 // 1. STRIPE WEBHOOK ROUTE 
 const paymentController = require("./controllers/payment.controller");
