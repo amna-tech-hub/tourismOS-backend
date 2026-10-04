@@ -3,63 +3,51 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const config = require('./env.config');
-const { startGeocodingJob } = require('../jobs/geocode.job')
+const { startGeocodingJob } = require('../jobs/geocode.job');
 
 // Import plugins
 const mongoosePaginate = require('mongoose-paginate-v2');
 const mongooseDelete = require('mongoose-delete');
 
+// Apply plugins globally ONCE at file load (outside connectDB function)
+mongoose.plugin(mongoosePaginate);
+mongoose.plugin(mongooseDelete, { 
+    overrideMethods: 'all',
+    deletedAt: true,
+});
+
 /**
- * Database connection options
+ * Database connection options optimized for Vercel Serverless
  */
 const options = {
-    autoIndex: true,
-    autoCreate: true,
-    maxPoolSize: 10,
-    minPoolSize: 2,
+    bufferCommands: false, // Prevents 10s silent timeouts; fails fast with exact error
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
-    family: 4,
-    // Additional options for production
-    ...(config.isProduction && {
-        maxPoolSize: 20,
-        minPoolSize: 5,
-    }),
+    maxPoolSize: 10,
+    minPoolSize: 1,
 };
 
 /**
- * Connect to MongoDB
+ * Connect to MongoDB with Connection Caching
  */
 const connectDB = async () => {
+    // 1. If already connected, reuse existing connection
+    if (mongoose.connection.readyState >= 1) {
+        return mongoose.connection;
+    }
+
     try {
-        // Apply plugins globally
-        mongoose.plugin(mongoosePaginate);
-        mongoose.plugin(mongooseDelete, { 
-            overrideMethods: 'all',
-            deletedAt: true,
-        });
-      
-
         const conn = await mongoose.connect(config.database.uri, options);
-        
-     startGeocodingJob()
+        logger.info('✅ MongoDB connected successfully');
 
-        // Handle connection events
-        mongoose.connection.on('error', (err) => {
-            logger.error(`MongoDB connection error: ${err}`);
-        });
-
-        mongoose.connection.on('disconnected', () => {
-            logger.warn('MongoDB disconnected');
-        });
-
-        mongoose.connection.on('reconnected', () => {
-            logger.info('MongoDB reconnected');
-        });
+        // Only start background jobs in traditional local/EC2 server mode, NOT on Vercel
+        if (!process.env.VERCEL) {
+            startGeocodingJob();
+        }
 
         return conn;
     } catch (error) {
-        logger.error(` MongoDB Connection Error: ${error.message}`);
+        logger.error(`❌ MongoDB Connection Error: ${error.message}`);
         throw error;
     }
 };

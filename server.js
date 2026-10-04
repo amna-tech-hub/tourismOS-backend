@@ -1,23 +1,25 @@
+// server.js
 const app = require("./src/app");
 const config = require("./src/config/env.config");
 const bootstrap = require("./src/bootstrap");
 
-async function startServer() {
+// Express Middleware: Ensures DB is connected before ANY route executes
+app.use(async (req, res, next) => {
     try {
         await bootstrap.initialize();
-
-        // Only start HTTP listener locally, not in Vercel serverless
-        if (!process.env.VERCEL) {
-            app.listen(config.port, () => {
-                console.log(`Server running on port ${config.port}`);
-            });
-        }
+        next();
     } catch (err) {
-        console.error(err);
+        next(err);
     }
+});
+
+// Start server locally
+if (!process.env.VERCEL) {
+    bootstrap.initialize().then(() => {
+        app.listen(config.port, () => {
+            console.log(`Server running on port ${config.port}`);
+        });
+    }).catch(console.error);
 }
 
-startServer();
-
-// EXPORT APP FOR VERCEL
 module.exports = app;
