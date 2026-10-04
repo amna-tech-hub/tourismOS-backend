@@ -150,12 +150,12 @@ const verifyOTP = async (req, res) => {
     );
 
     // Configure Cookie Options
-    const cookieOptions = {
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    };
+ const cookieOptions = {
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+};
 
     res.cookie("token", token, cookieOptions);
 
@@ -288,13 +288,12 @@ const login = async (req, res) => {
       process.env.JWT_ACCESS_SECRET,
       { expiresIn: "7d" }
     );
-
-    const cookieOptions = {
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    };
+const cookieOptions = {
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+};
 
     res.cookie("token", token, cookieOptions);
 
@@ -331,13 +330,14 @@ const logout = async (req, res) => {
     }
 
     // 2. Clear HttpOnly auth cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    };
+   const cookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+};
 
-    res.clearCookie("token", cookieOptions);
+res.clearCookie("token", cookieOptions);
+
 
     return successResponse(res, {
       statusCode: 200,
@@ -617,14 +617,12 @@ const acceptInvite = async (req, res) => {
     // 11. SET AUTH COOKIE
     // ==========================================
 
-    const cookieOptions = {
-      expires: new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000
-      ),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    };
+   const cookieOptions = {
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+};
 
     res.cookie("token", jwtToken, cookieOptions);
 
