@@ -7,20 +7,25 @@ const { connectDB } = require('./config/database.config');
 
 /**
  * Application Bootstrap
- * Initializes all services before starting the server
+ * Initializes services before starting the server
  */
 class AppBootstrap {
     constructor() {
         this.isShuttingDown = false;
+        this.isInitialized = false;
     }
 
     /**
-     * Initialize all services
+     * Initialize all services (skips if already connected)
      */
     async initialize() {
+        if (this.isInitialized && mongoose.connection.readyState === 1) {
+            return true;
+        }
+
         try {
-            logger.info(' Starting application bootstrap...');
-            logger.info(` Environment: ${config.nodeEnv}`);
+            logger.info('Starting application bootstrap...');
+            logger.info(`Environment: ${config.nodeEnv}`);
 
             // Step 1: Log environment info
             this.logEnvironmentInfo();
@@ -28,7 +33,7 @@ class AppBootstrap {
             // Step 2: Connect to Database
             await this.initializeDatabase();
 
-          
+            this.isInitialized = true;
             logger.info('Application bootstrap completed successfully!');
             return true;
         } catch (error) {
@@ -38,63 +43,45 @@ class AppBootstrap {
     }
 
     /**
-     * Log environment information (just for visibility)
+     * Log environment information
      */
     logEnvironmentInfo() {
         logger.info('Environment Configuration:');
         logger.info(`   Port: ${config.port}`);
         logger.info(`   Environment: ${config.nodeEnv}`);
-        logger.info(`   Database: ${config.database.uri ? ' Configured' : 'Missing'}`);
-        // logger.info(`   JWT: ${config.jwt.secret ? ' Configured' : ' Missing'}`);
-        
-        // Log database URI (hide credentials for security)
-        if (config.database.uri) {
-            const hiddenUri = config.database.uri.replace(/\/\/.*@/, '//*****@');
-            logger.info(`   Database URI: ${hiddenUri}`);
-        }
+        logger.info(`   Database: ${config.database.uri ? 'Configured' : 'Missing'}`);
     }
 
     /**
      * Initialize database connection
      */
     async initializeDatabase() {
-        logger.info(' Connecting to database...');
-        
         try {
             // Connect to MongoDB
             await connectDB();
-            
-           
-            
-            // Test connection with a simple ping
-            await mongoose.connection.db.admin().ping();
-            logger.info(' Database ping successful');
-            
             return true;
         } catch (error) {
-            logger.error(` Database initialization failed: ${error.message}`);
+            logger.error(`Database initialization failed: ${error.message}`);
             throw new Error(`Database unavailable: ${error.message}`);
         }
     }
 
-//    cleaning
+    /**
+     * Graceful Shutdown
+     */
     async shutdown() {
         if (this.isShuttingDown) {
             return;
         }
 
         this.isShuttingDown = true;
-        logger.info(' Starting graceful shutdown...');
+        logger.info('Starting graceful shutdown...');
 
         try {
-            // Disconnect from database
             if (mongoose.connection.readyState === 1) {
                 await mongoose.disconnect();
                 logger.info('✅ Database disconnected');
             }
-
-          
-
             logger.info('✅ Graceful shutdown completed');
         } catch (error) {
             logger.error(`Shutdown error: ${error.message}`);
