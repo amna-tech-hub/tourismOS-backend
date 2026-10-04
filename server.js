@@ -1,25 +1,36 @@
 // server.js
+
 const app = require("./src/app");
 const config = require("./src/config/env.config");
 const bootstrap = require("./src/bootstrap");
 
-// Express Middleware: Ensures DB is connected before ANY route executes
-app.use(async (req, res, next) => {
+// Vercel/serverless handler
+const handler = async (req, res) => {
     try {
         await bootstrap.initialize();
-        next();
+        return app(req, res);
     } catch (err) {
-        next(err);
+        console.error("Application initialization failed:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Database connection failed",
+        });
     }
-});
+};
 
 // Start server locally
 if (!process.env.VERCEL) {
-    bootstrap.initialize().then(() => {
-        app.listen(config.port, () => {
-            console.log(`Server running on port ${config.port}`);
+    bootstrap.initialize()
+        .then(() => {
+            app.listen(config.port, () => {
+                console.log(`Server running on port ${config.port}`);
+            });
+        })
+        .catch((error) => {
+            console.error("Application startup failed:", error);
+            process.exit(1);
         });
-    }).catch(console.error);
 }
 
-module.exports = app;
+module.exports = handler;
