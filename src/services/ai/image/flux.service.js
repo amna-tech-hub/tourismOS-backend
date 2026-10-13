@@ -23,11 +23,7 @@ class FluxService {
       const arrayBuffer = await imageBlob.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      console.log(
-        "✅ HuggingFace image generated:",
-        (buffer.length / 1024).toFixed(2),
-        "KB"
-      );
+   
 
       return {
         success: true,

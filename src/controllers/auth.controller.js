@@ -319,7 +319,8 @@ const cookieOptions = {
 };
 const logout = async (req, res) => {
   try {
-    const { fcmToken } = req.body;
+    // Safely fallback to an empty object if req.body is undefined
+    const { fcmToken } = req.body || {};
     const userId = req.user?.id; 
 
     // 1. Remove device's FCM token from MongoDB (so pushes stop)
@@ -330,14 +331,13 @@ const logout = async (req, res) => {
     }
 
     // 2. Clear HttpOnly auth cookie
-   const cookieOptions = {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-};
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    };
 
-res.clearCookie("token", cookieOptions);
-
+    res.clearCookie("token", cookieOptions);
 
     return successResponse(res, {
       statusCode: 200,

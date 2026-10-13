@@ -226,7 +226,6 @@ const restoreUser = async (req, res) => {
 
 const userProfile = async (req, res) => {
   try {
-    console.log(req.user," user request");
     
     const userId = req.user?.id || req.user?.id;
 

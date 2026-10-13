@@ -67,10 +67,10 @@ const subscriptionPlanRoutes=require('./routes/subscriptionPlan.routes')
 const subscriptionCheckoutRoutes=require('./routes/subscription.routes')
 const adminDashboardRoutes=require('./routes/admin-routes/dashboard.routes')
 const employeeRoutes = require("./routes/employee/employee.routes");
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 app.use('/api/admin', adminRoutes);
 
-app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/users", usersRoutes);
 

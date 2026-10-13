@@ -60,7 +60,6 @@ const generatePreview = async (req, res) => {
 
     const isSuperAdmin = req.user.role === "super_admin";
     const company = await getCompanyForUser(req.user);
-    console.log("after company", company);
 
     // Require company profile ONLY IF the user is NOT a super_admin
     if (!isSuperAdmin && !company) {

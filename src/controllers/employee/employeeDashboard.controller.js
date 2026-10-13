@@ -80,7 +80,7 @@ const getDashboardStats = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5)
       .populate("tour", "title from to price")
-      .populate("user", "name email");
+      .populate("traveler", "name email");
 
     // ==========================================
     // 5. RECENT REVIEWS (last 5)

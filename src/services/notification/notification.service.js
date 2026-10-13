@@ -32,9 +32,7 @@ class NotificationService {
       const user = await User.findById(userId).select("fcmTokens");
 
       if (!user || !user.fcmTokens?.length) {
-        console.log(
-          `[Notification] No active FCM tokens for user: ${userId}`
-        );
+    
 
         return {
           notificationSaved: true,
@@ -80,11 +78,7 @@ class NotificationService {
       const response =
         await getMessaging().sendEachForMulticast(message);
 
-      console.log(
-        `[FCM] Notification sent to ${userId}: ` +
-          `${response.successCount} success, ` +
-          `${response.failureCount} failed.`
-      );
+   
 
       // ==========================================
       // 6. REMOVE INVALID TOKENS
@@ -148,9 +142,7 @@ class NotificationService {
       },
     });
 
-    console.log(
-      `[FCM Cleanup] Removed ${failedTokens.length} stale tokens`
-    );
+  
   }
 }
 

@@ -38,12 +38,7 @@ class GeminiImageService {
 
       const buffer = Buffer.from(generatedImage.imageBytes, "base64");
 
-      console.log(
-        "✅ Gemini image generated:",
-        (buffer.length / 1024).toFixed(2),
-        "KB"
-      );
-
+  
       return {
         success: true,
         provider: this.provider,

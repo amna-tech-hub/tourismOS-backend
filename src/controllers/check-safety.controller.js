@@ -106,7 +106,6 @@ const sendSafetyNotifications = async ({
         $ne: true,
       },
     }).select("traveler");
-console.log(bookings," all booked user of the tour that give warning");
 
 
     // =================================================
@@ -126,7 +125,6 @@ console.log(bookings," all booked user of the tour that give warning");
     // =================================================
     // 7. NOTIFY TRAVELERS
     // =================================================
-console.log(travelerIds," all ids");
 
     for (const travelerId of travelerIds) {
       await notificationService.sendToUser(
@@ -146,9 +144,7 @@ console.log(travelerIds," all ids");
       );
     }
 
-    console.log(
-      `🔔 Safety notifications sent for tour ${tour._id}`
-    );
+  
 
   } catch (error) {
     console.error(

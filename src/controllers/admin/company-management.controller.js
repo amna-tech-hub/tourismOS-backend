@@ -13,10 +13,12 @@ const { generateCryptoToken } = require("../../utils/cryptoToken.util");
 const mailSender = require("../../services/email/mailSender");
 
 const createCompany = async (req, res) => {
+  
     try {
         const { companyName, email, phone, address } = req.body;
 
         if (!companyName || !email) {
+          
             return errorResponse(res, {
                 statusCode: 400,
                 message: "Company name and email are required.",

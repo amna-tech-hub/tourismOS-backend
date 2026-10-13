@@ -181,19 +181,11 @@ async processSuccessfulPayment({
     }
   );
 
-  console.log(
-    `✅ Booking ${booking._id} confirmed.
-    Platform earned: PKR ${payment.platformCommission}
-    Company earned: PKR ${payment.companyPayout}`
-  );
+
 }
 
 async handleSubscriptionPayment(payment) {
-  console.log(
-    payment,
-    "payment from payment processor"
-  );
-
+ 
   // ==========================================
   // FIND PLAN
   // ==========================================
@@ -278,10 +270,7 @@ async handleSubscriptionPayment(payment) {
     }
   );
 
-  console.log(
-    `✅ Subscription ${companySubscription._id} activated.
-    Platform earned: PKR ${payment.amount} (100% - subscription)`
-  );
+
 }
 }
 

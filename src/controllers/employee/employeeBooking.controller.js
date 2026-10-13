@@ -65,7 +65,7 @@ const getMyTourBookings = async (req, res) => {
     // Base query
     const baseQuery = Booking.find(filter)
       .populate("tour", "title from to price coverImage")
-      .populate("user", "name email phone")
+      .populate("traveler", "name email phone")
       .populate("company", "companyName logo");
 
     // Apply ApiFeatures
@@ -131,7 +131,7 @@ const getBookingDetails = async (req, res) => {
       isDeleted: { $ne: true },
     })
       .populate("tour", "title from to price duration coverImage itinerary")
-      .populate("user", "name email phone gender avatar")
+      .populate("traveler", "name email phone gender avatar")
       .populate("company", "companyName logo email phone address")
       .populate("payment", "status amount method transactionId");
 

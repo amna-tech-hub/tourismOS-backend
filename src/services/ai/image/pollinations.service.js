@@ -27,15 +27,10 @@ class PollinationsService {
 
 const url =
 `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1024&height=576&seed=${seed}&nologo=true`;
-    console.log(" Pollinations generating image...");
-    console.log("Prompt:", finalPrompt);
-    console.log("URL:", url);
-
+  
     const response = await fetch(url);
 
-    console.log("Status:", response.status);
-    console.log("Content-Type:", response.headers.get("content-type"));
-
+ 
     // Stop immediately if HTTP failed
     if (!response.ok) {
       const errorText = await response.text();
@@ -62,12 +57,7 @@ const url =
 
     const buffer = Buffer.from(arrayBuffer);
 
-    console.log(
-      " Image generated!",
-      (buffer.length / 1024).toFixed(2),
-      "KB"
-    );
-
+   
     return {
       success: true,
       provider: this.provider,
